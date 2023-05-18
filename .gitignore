@@ -1,5 +1,6 @@
 img
 *.jpg
-TPAMI15.pdf
-shadowless.pdf
+*.pth
+*.pdf
 .idea
+__pycache__/
