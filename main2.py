@@ -1,3 +1,6 @@
+# Thanks to Basj from StackOverflow for an example of advanced image viewer
+# https://stackoverflow.com/a/48137257/16927038
+
 # -*- coding: utf-8 -*-
 # Advanced zoom for images of various types from small to huge up to several GB
 import math
@@ -12,8 +15,8 @@ import torch
 from PIL import Image, ImageTk
 from PIL.Image import Resampling
 
-from tools.fetch_images import get_map_tiles, merge_image_tiles
 from st_cgan.main import ST_CGAN
+from tools.fetch_images import AtlasOkoljaFetcher
 
 
 class AutoScrollbar(ttk.Scrollbar):
@@ -370,6 +373,7 @@ class MainWindow(ttk.Frame):
         self.entry1 = None
         self.entry2 = None
         self.entry3 = None
+        self.entry4 = None
 
         self.path = path
         """ Initialize the main Frame """
@@ -490,14 +494,33 @@ class MainWindow(ttk.Frame):
         label3.grid(row=2, column=0, sticky="e")
         self.entry3 = tk.Entry(child_w)
         self.entry3.grid(row=2, column=1)
+        self.entry3.insert(0, str(16))
+
+        # Fourth input field and label
+        label4 = tk.Label(child_w, text="Width:")
+        label4.grid(row=3, column=0, sticky="e")
+        self.entry4 = tk.Entry(child_w)
+        self.entry4.grid(row=3, column=1)
+        self.entry4.insert(0, str(20))
 
         fetch_button = ttk.Button(child_w, text="Fetch images", command=self.download)
-        fetch_button.grid(row=3, column=0, pady=10, columnspan=2)
+        fetch_button.grid(row=4, column=0, pady=10, columnspan=2)
 
     def download(self):
-        if self.entry1.get() != "" and self.entry2.get() != "" and self.entry3.get() != "":
-            get_map_tiles(int(self.entry1.get()), int(self.entry2.get()), int(self.entry3.get()))
-            self.path, _ = merge_image_tiles(int(self.entry1.get()), int(self.entry2.get()))
+        if self.entry1.get() != "" and self.entry2.get() != "" and self.entry3.get() != "" and self.entry4.get() != "":
+            params = {
+                'r': int(self.entry1.get()),
+                'c': int(self.entry2.get()),
+                'lod': int(self.entry3.get()),
+                'f': 'jpg',
+                'lid': 'lay_ao_dof_2019',
+                'gcid': 'lay_AO_DOF_2019',
+                'width': int(self.entry4.get()),
+                'output': 'img',
+            }
+            fetcher = AtlasOkoljaFetcher(params)
+            fetcher.fetch()
+            self.path, _ = fetcher.merge()
             self.canvasA.load_image(self.path)
 
 
