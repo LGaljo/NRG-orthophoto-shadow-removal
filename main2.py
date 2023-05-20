@@ -410,7 +410,8 @@ class MainWindow(ttk.Frame):
         if file_path:
             print('load image')
             self.path = file_path
-            self.canvasA.load_image(file_path)
+            self.canvasA = CanvasImage(self.master, file_path)
+            self.canvasA.grid(row=0, column=0, columnspan=4, sticky="nsew")
 
     def remove_shadows(self):
         self.st_cgan = ST_CGAN("./st_cgan/model/ST-CGAN_G1.pth", "./st_cgan/model/ST-CGAN_G2.pth")
@@ -441,7 +442,10 @@ class MainWindow(ttk.Frame):
                 # merged_image[start_row:start_row + 256, start_col:start_col + 256, :] = torch.tensor(np.array(tile_image))
 
         # merged_image_pil = Image.fromarray(merged_image.numpy())
-        merged_image2.save(self.path[:-4] + "_shadowless" + self.path[-4:])
+        out_path = self.path[:-4] + "_shadowless" + self.path[-4:]
+        merged_image2.save(out_path)
+
+        print(f"Image saved to {out_path}")
 
         # for x in range(start_r, end_r):
         #     for y in range(start_c, end_c):
@@ -451,7 +455,11 @@ class MainWindow(ttk.Frame):
         #         image_out.append(out_path)
 
         self.canvasA.clear_manipulations()
-        self.canvasB.load_image(self.path[:-4] + "_shadowless" + self.path[-4:])
+        self.canvasB.load_image(out_path)
+        self.canvasA.grid_remove()
+        self.canvasB = CanvasImage(self.master, out_path)
+        self.canvasB.grid(row=0, column=0, columnspan=4, sticky="nsew")
+
         self.compare_button.grid()
 
     def compare_images(self):

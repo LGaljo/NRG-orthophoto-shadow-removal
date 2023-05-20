@@ -4,3 +4,5 @@ img
 *.pdf
 .idea
 __pycache__/
+report
+mydataset

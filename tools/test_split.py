@@ -30,8 +30,8 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Remove shadows from given images",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i', '--input', default="./img", required=True, help="Input path of images")
-    parser.add_argument('-o', '--output', default="../out", help="Output path for images")
+    parser.add_argument('-i', '--input', default="../test_images", required=True, help="Input path of images")
+    parser.add_argument('-o', '--output', default="../test_images_out", help="Output path for images")
     parser.add_argument('-m', '--save_masks', default=False, help="Saves the masks if desired")
     parser.add_argument('-g1', default="../st_cgan/model/ST-CGAN_G1.pth", help="Location of G1 Generator model")
     parser.add_argument('-g2', default="../st_cgan/model/ST-CGAN_G2.pth", help="Location of G2 Generator model")
