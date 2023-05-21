@@ -414,7 +414,7 @@ class MainWindow(ttk.Frame):
             self.canvasA.grid(row=0, column=0, columnspan=4, sticky="nsew")
 
     def remove_shadows(self):
-        self.st_cgan = ST_CGAN("./st_cgan/model/ST-CGAN_G1.pth", "./st_cgan/model/ST-CGAN_G2.pth")
+        self.st_cgan = ST_CGAN("./st_cgan/model/ST-CGAN_G1_700.pth", "./st_cgan/model/ST-CGAN_G2_700.pth")
 
         image = Image.open(self.path)
         image_tensor = torch.tensor(np.array(image))

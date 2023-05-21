@@ -16,6 +16,17 @@ Model processes each tile and then restitches them into single image.
 
 The GUI allows comparison of original and transformed image by switching between them.
 
+We expanded the ISTD dataset and additional images are available on [Google Drive](https://drive.google.com/drive/folders/1Z17594slIvxKwVPuH3KccTMnIHDnK3gB?usp=share\_link).
+This folder also includes learned model.
+
+### How to use?
+* Download the model from the Google Drive and place it into the folder at ./st_cgan/model.
+* Run python script ./main.py to open the GUI
+
+If you want to retrain the model use the training scripts provided in the [repo of the original authors implementation of research paper](https://github.com/IsHYuhi/ST-CGAN_Stacked_Conditional_Generative_Adversarial_Networks
+).
+
+
 ### Thanks to
 This StackOverflow answer for advanced image viewer implementation Tkinter:
 https://stackoverflow.com/a/48137257/16927038
