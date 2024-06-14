@@ -9,7 +9,7 @@ import os
 
 torch.manual_seed(44)
 # choose your device
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 def fix_model_state_dict(state_dict):
@@ -78,6 +78,29 @@ class ST_CGAN:
             detected_shadow = self.G1(img.to(self.device))
             detected_shadow = detected_shadow.to(torch.device('cpu'))
             concat = torch.cat([img, detected_shadow], dim=1)
+            shadow_removal_image = self.G2(concat.to(self.device))
+            shadow_removal_image = shadow_removal_image.to(torch.device('cpu'))
+
+            shadow_removal_image = transforms.ToPILImage(mode='RGB')(unnormalize(shadow_removal_image)[0, :, :, :])
+            shadow_removal_image = shadow_removal_image.resize((width, height), Resampling.LANCZOS)
+            # shadow_removal_image.save(out_path)
+            return shadow_removal_image, transforms.ToPILImage(mode='L')(unnormalize(detected_shadow)[0, :, :, :])
+
+    def convert_image_mask(self, image, mask):
+        img = image.convert('RGB')
+        mask = mask.convert('L')
+        width, height = img.width, img.height
+        img = self.img_transform(img)
+        img = torch.unsqueeze(img, dim=0)
+        mask = self.img_transform(mask)
+        mask = torch.unsqueeze(mask, dim=0)
+
+        with torch.no_grad():
+            detected_shadow = self.G1(img.to(self.device))
+            detected_shadow = detected_shadow.to(torch.device('cpu'))
+
+            mask = mask.to(torch.device('cpu'))
+            concat = torch.cat([img, mask], dim=1)
             shadow_removal_image = self.G2(concat.to(self.device))
             shadow_removal_image = shadow_removal_image.to(torch.device('cpu'))
 

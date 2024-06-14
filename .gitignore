@@ -1,5 +1,6 @@
 img
 *.jpg
+*.png
 *.pth
 *.pdf
 .idea
