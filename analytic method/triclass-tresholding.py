@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-from skimage import filters
 
 
 def otsu_thresholding(image):
@@ -56,7 +55,8 @@ def tri_class_thresholding(image, preset_threshold=0.01):
 
 # Example usage:
 if __name__ == "__main__":
-    image = cv2.imread('../13-2.png', cv2.IMREAD_GRAYSCALE)
+    # image = cv2.imread('../13-2.png', cv2.IMREAD_GRAYSCALE)
+    image = cv2.imread('../img/merged/tiffs/DOF5-20240624-K11041280x2816.tif', cv2.IMREAD_GRAYSCALE)
     segmented_image = tri_class_thresholding(image)
 
     cv2.imshow('Original Image', image)

@@ -21,8 +21,8 @@ def prepare_plot(origImage, origMask, predMask):
 
     # set the titles of the subplots
     ax[0].set_title("Image")
-    ax[1].set_title("Original Mask")
-    ax[2].set_title("Predicted Mask")
+    ax[1].set_title("Ground truth")
+    ax[2].set_title("Prediction")
 
     # set the layout of the figure and display it
     figure.tight_layout()
@@ -46,13 +46,17 @@ def make_predictions(model, imagePath):
 
         # find the filename and generate the path to ground truth
         # mask
-        filename = imagePath.split(os.path.sep)[-1]
-        groundTruthPath = os.path.join(config.GT_DATASET_PATH, filename)
+        gtMask = np.ones_like(image)
+        try:
+            filename = imagePath.split(os.path.sep)[-1]
+            groundTruthPath = os.path.join(config.GT_DATASET_PATH, filename)
 
-        # load the ground-truth segmentation mask in grayscale mode
-        # and resize it
-        gtMask = Image.open(groundTruthPath)
-        gtMask = gtMask.resize((config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_HEIGHT))
+            # load the ground-truth segmentation mask in grayscale mode
+            # and resize it
+            gtMask = Image.open(groundTruthPath)
+            gtMask = gtMask.resize((config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_HEIGHT))
+        except:
+            print('No GT image')
 
         # make the channel axis to be the leading one, add a batch
         # dimension, create a PyTorch tensor, and flash it to the
@@ -64,14 +68,9 @@ def make_predictions(model, imagePath):
         # make the prediction, pass the results through the sigmoid
         # function, and convert the result to a NumPy array
         predMask = model(image_tensor).squeeze()
-        # predMask = torch.sigmoid(predMask)
         predMask = predMask.cpu().numpy()
         predMask = np.transpose(predMask, (1, 2, 0))
-        predMask = (predMask-np.min(predMask))/(np.max(predMask)-np.min(predMask))
-
-        # filter out the weak predictions and convert them to integers
-        # predMask = (predMask > config.THRESHOLD) * 255
-        # predMask = predMask.astype(np.uint8)
+        # predMask = (predMask-np.min(predMask))/(np.max(predMask)-np.min(predMask))
 
         # prepare a plot for visualization
         prepare_plot(og_image, gtMask, predMask)
@@ -82,8 +81,10 @@ if __name__ == '__main__':
     # image paths
     print("[INFO] loading up test image paths...")
     imagePaths = open(config.TEST_PATHS).read().strip().split("\n")
-    imagePaths = np.random.choice(imagePaths, size=2)
-    imagePaths = np.append(imagePaths, "..\\unity_dataset\\big_trees_datasets\\train_A\\DOF_D96TM_2018_2021_83803_71590_16.jpg")
+    imagePaths = np.random.choice(imagePaths, size=10)
+    imagePaths = np.append(imagePaths, "../img/tiles/DOF_D96TM_2018_2021_83876_71725_16.jpg")
+    imagePaths = np.append(imagePaths, "../img/tiles/lay_ao_dof_2019_1170_1286_16.jpg")
+    imagePaths = np.append(imagePaths, "../img/tiles/lay_ao_dof_2019_1152_1289_16.jpg")
 
     # load our model from disk and flash it to the current device
     print("[INFO] load up model...")

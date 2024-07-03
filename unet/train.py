@@ -1,9 +1,11 @@
 # USAGE
 # python train.py
 # import the necessary packages
+import os
+
 from dataset import ImageLoaderDataset
 import config
-from torch.nn import BCEWithLogitsLoss, L1Loss
+from torch.nn import BCEWithLogitsLoss, L1Loss, MSELoss
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
@@ -14,7 +16,7 @@ import matplotlib.pyplot as plt
 import torch
 import time
 
-from unet.model_pyis_my import UNet
+from unet.model_my2 import UNet
 
 
 def train():
@@ -30,12 +32,14 @@ def train():
     (train_si, test_si) = split[:2]
     (train_sli, test_sli) = split[2:]
 
+    # TODO: Disable on real training
     # train_si = train_si[:15]
     # train_sli = train_sli[:15]
 
     # write the testing image paths to disk so that we can use then
     # when evaluating/testing our model
     print("[INFO] saving testing image paths...")
+    os.mkdir(config.BASE_OUTPUT)
     f = open(config.TEST_PATHS, "w")
     f.write("\n".join(test_si))
     f.close()
@@ -43,7 +47,7 @@ def train():
     # define transformations
     ds_transforms = transforms.Compose([transforms.Resize((config.INPUT_IMAGE_HEIGHT,
                                                            config.INPUT_IMAGE_WIDTH)),
-                                        transforms.ToTensor()])
+                                         transforms.ToTensor()])
     # create the train and test datasets
     trainDS = ImageLoaderDataset(shadow_paths=train_si, shadowless_paths=train_sli, transforms=ds_transforms)
     testDS = ImageLoaderDataset(shadow_paths=test_si, shadowless_paths=test_sli, transforms=ds_transforms)
@@ -51,12 +55,8 @@ def train():
     print(f"[INFO] found {len(testDS)} examples in the test set...")
 
     # create the training and test data loaders
-    trainLoader = DataLoader(trainDS, shuffle=True, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY,
-                             num_workers=0
-                             # num_workers=os.cpu_count()
-                             )
-    testLoader = DataLoader(testDS, shuffle=False, batch_size=config.BATCH_SIZE,
-                            pin_memory=config.PIN_MEMORY, num_workers=0)
+    trainLoader = DataLoader(trainDS, shuffle=True, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY)
+    testLoader = DataLoader(testDS, shuffle=False, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY)
 
     # calculate steps per epoch for training and test set
     trainSteps = len(trainDS) // config.BATCH_SIZE
@@ -68,7 +68,7 @@ def train():
     unet = UNet().to(config.DEVICE)
 
     # initialize loss function and optimizer
-    lossFunc = BCEWithLogitsLoss().to(config.DEVICE)
+    lossFunc = MSELoss().to(config.DEVICE)
     optimizer = Adam(unet.parameters(), lr=config.INIT_LR)
 
     torch.backends.cudnn.benchmark = True
@@ -132,6 +132,9 @@ def train():
         print("Train loss: {:.6f}, Test loss: {:.4f}".format(
             avgTrainLoss, avgTestLoss))
 
+        show_plot(H)
+        torch.save(unet, config.MODEL_PATH)
+
     # display the total time needed to perform the training
     endTime = time.time()
 
@@ -156,7 +159,7 @@ def show_plot(H):
     plt.title("Training Loss on Dataset")
     plt.xlabel("Epoch #")
     plt.ylabel("Loss")
-    plt.legend(loc="lower left")
+    plt.legend(loc="upper right")
     plt.savefig(config.PLOT_PATH)
 
 

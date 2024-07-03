@@ -7,12 +7,12 @@ import torch
 from PIL import Image
 from tqdm import tqdm
 
-subset_path = "../unity_dataset/big_trees_datasets/full_size/*.png"
+subset_path = "../unity_dataset/tiny_trees_dataset/full_size/*.png"
 # subset_path = "C:\\Users\\lukag\\AppData\\LocalLow\\Magistrska naloge - Luka Galjot\\Mag Generate Shadows\\*.png"
 
-image_normal = '../unity_dataset/big_trees_datasets/train_A'
-image_mask = '../unity_dataset/big_trees_datasets/train_B'
-image_shadowless = '../unity_dataset/big_trees_datasets/train_C'
+image_normal = '../unity_dataset/tiny_trees_dataset/train_A'
+image_mask = '../unity_dataset/tiny_trees_dataset/train_B'
+image_shadowless = '../unity_dataset/tiny_trees_dataset/train_C'
 
 pattern = r"[-](.*)[-]([x]+\d+).*([z]+\d+).*[.]+.*"
 # pattern = r"^.*_([a-z0-9]+){1}-(x\d+)+-(z\d+)+"
@@ -44,14 +44,16 @@ def process_image(image_path):
         for j in range(tiles.shape[1]):
             tile = tiles[i, j]
             file_name = "{}_{}_{}".format(match.group(1), match.group(2), match.group(3))
+            tile_image = None
+            folder_path = None
             if 'Mask' in image_path:
                 tile_image = Image.fromarray(tile.numpy().astype(np.uint8), 'L')
                 folder_path = image_mask
-            elif 'None' in image_path:
+            if 'None' in image_path:
                 reshaped_image = tile.permute(1, 2, 0).contiguous().view(tile_size, tile_size, 3)
                 tile_image = Image.fromarray(reshaped_image.numpy().astype(np.uint8), 'RGB')
                 folder_path = image_shadowless
-            else:
+            if 'Hard' in image_path:
                 reshaped_image = tile.permute(1, 2, 0).contiguous().view(tile_size, tile_size, 3)
                 tile_image = Image.fromarray(reshaped_image.numpy().astype(np.uint8), 'RGB')
                 folder_path = image_normal

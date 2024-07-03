@@ -11,10 +11,11 @@ from skimage.filters import threshold_multiotsu
 matplotlib.rcParams['font.size'] = 9
 
 # The input image.
-rgb_image = Image.open("../13-2.png")
+# rgb_image = Image.open("../13-2.png")
 # rgb_image = Image.open('../img/merged/DOF_D96TM_2018_2021_83809_71597_16_2024-01-22_175803.jpg')
 # rgb_image = Image.open('../test_images/shadowless-4-2.jpg').convert('L')
 # rgb_image = Image.open('../13-2.png').convert('L')
+rgb_image = Image.open('../img/merged/tiffs/DOF5-20240624-K11041280x2816.tif')
 image = rgb_image.convert('L')
 rgb_image = rgb_image.convert('RGB')
 image = np.array(image)

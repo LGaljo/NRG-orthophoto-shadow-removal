@@ -7,3 +7,5 @@ img
 __pycache__/
 report
 mydataset
+*.tif
+unet/output_*/*

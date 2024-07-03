@@ -1,20 +1,12 @@
-import os
-import time
 from typing import Tuple, List
 
 import cv2 as cv
 import numpy as np
-from PIL import Image, ImageCms
 from skimage import measure
 from matplotlib import pyplot as plt
-from skimage.filters import threshold_multiotsu
-import concurrent.futures
-
-from tqdm import tqdm
 
 '''
 Shadow removal code by Yalım Doğan
-https://github.com/YalimD/image_shadow_remover
 
 This software is implemented according to the methods presented in:
 
@@ -38,9 +30,9 @@ def median_filter(img: np.ndarray,
                for x in range(point[1] - filter_size // 2, point[1] + filter_size // 2 + 1)
                for y in range(point[0] - filter_size // 2, point[0] + filter_size // 2 + 1)]
 
-    indices = list(filter(
-        lambda x: not (x[0] < 0 or x[1] < 0 or x[0] >= img.shape[0] or x[1] >= img.shape[1]), indices)
-    )
+    indices = list(filter(lambda x: not (x[0] < 0 or x[1] < 0 or
+                                         x[0] >= img.shape[0] or
+                                         x[1] >= img.shape[1]), indices))
 
     pixel_values = [0, 0, 0]
 
@@ -52,23 +44,6 @@ def median_filter(img: np.ndarray,
     return pixel_values
 
 
-def median_filter_2(img: np.ndarray, point: np.ndarray, filter_size: int) -> List:
-    x, y = point
-    half_size = filter_size // 2
-
-    # Extract the sub-region of the image
-    sub_img = img[max(0, x - half_size):min(img.shape[0], x + half_size + 1),
-                  max(0, y - half_size):min(img.shape[1], y + half_size + 1)]
-
-    # Compute the median values for each channel
-    if img.ndim == 3:
-        median_values = [np.median(sub_img[:, :, channel]) for channel in range(img.shape[2])]
-    else:  # Grayscale image
-        median_values = np.median(sub_img)
-
-    return median_values
-
-
 # Applies median filtering on given contour pixels, the filter size is adjustable
 def edge_median_filter(img: np.ndarray,
                        contours_list: tuple,
@@ -77,9 +52,9 @@ def edge_median_filter(img: np.ndarray,
 
     for partition in contours_list:
         for point in partition:
-            v1 = median_filter(img, point[0], filter_size)
-            # v2 = median_filter_2(img, point[0], filter_size)
-            temp_img[point[0][1]][point[0][0]] = v1
+            temp_img[point[0][1]][point[0][0]] = median_filter(img,
+                                                               point[0],
+                                                               filter_size)
 
     return cv.cvtColor(temp_img, cv.COLOR_HSV2BGR)
 
@@ -120,8 +95,8 @@ def display_region(org_image: np.ndarray,
 
 def correct_region_lab(org_img: np.ndarray,
                        shadow_clear_img: np.ndarray,
-                       shadow_indices: tuple,
-                       non_shadow_indices: tuple) -> np.ndarray:
+                       shadow_indices: np.ndarray,
+                       non_shadow_indices: np.ndarray) -> np.ndarray:
     # Q: Rather than asking for RGB constants individually, why not adjust L only?
     # A: L component isn't enough to REVIVE the colors that were under the shadow.
 
@@ -133,12 +108,12 @@ def correct_region_lab(org_img: np.ndarray,
 
     # Calculate ratios that are going to be used on clearing the current shadow region
     # This is different for each region, therefore calculated each time
-    lab_ratio = ((border_average_lab + 1e-6) / (shadow_average_lab + 1e-6)) * 1.0
+    lab_ratio = border_average_lab / shadow_average_lab
 
     shadow_clear_img = cv.cvtColor(shadow_clear_img, cv.COLOR_BGR2LAB)
     shadow_clear_img_lab_16bit = np.uint16(shadow_clear_img)
 
-    shadow_clear_img_lab_16bit[shadow_indices[0], shadow_indices[1]] = (shadow_clear_img_lab_16bit[shadow_indices[0], shadow_indices[1]] + 1e-6) * lab_ratio
+    shadow_clear_img_lab_16bit[shadow_indices[0], shadow_indices[1]] = shadow_clear_img_lab_16bit[shadow_indices[0], shadow_indices[1]] * lab_ratio
 
     # Clip and convert back to 8 bits
     shadow_clear_img = np.uint8(np.clip(shadow_clear_img_lab_16bit, 0, 255))
@@ -149,19 +124,19 @@ def correct_region_lab(org_img: np.ndarray,
 
 def correct_region_bgr(org_img: np.ndarray,
                        shadow_clear_img: np.ndarray,
-                       shadow_indices: tuple,
-                       non_shadow_indices: tuple) -> np.ndarray:
+                       shadow_indices: np.ndarray,
+                       non_shadow_indices: np.ndarray) -> np.ndarray:
     # Calculate average BGR values in current shadow region and non-shadow areas
     shadow_average_bgr = np.mean(org_img[shadow_indices[0], shadow_indices[1], :], axis=0)
 
     # Get the average BGR from border areas
     border_average_bgr = np.mean(org_img[non_shadow_indices[0], non_shadow_indices[1], :], axis=0)
     bgr_ratio = border_average_bgr / shadow_average_bgr
-    shadow_clear_img_rgb_16bit = np.uint16(shadow_clear_img)
 
     # Adjust BGR
-    shadow_clear_img[shadow_indices[0], shadow_indices[1]] = shadow_clear_img_rgb_16bit[shadow_indices[0], shadow_indices[1]] * bgr_ratio
-    shadow_clear_img = np.uint8(np.clip(shadow_clear_img_rgb_16bit, 0, 255))
+    shadow_clear_img[shadow_indices[0], shadow_indices[1]] = np.uint8(
+        shadow_clear_img[shadow_indices[0],
+                         shadow_indices[1]] * bgr_ratio)
 
     return shadow_clear_img
 
@@ -176,15 +151,12 @@ def process_regions(org_image: np.ndarray,
     lab_img = cv.cvtColor(org_image, cv.COLOR_BGR2LAB)
     shadow_clear_img = np.copy(org_image)  # Used for constructing corrected image
 
-    non_shadow_kernel_size = (shadow_dilation_kernel_size, shadow_dilation_kernel_size)
-    non_shadow_kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, non_shadow_kernel_size)
-
-    mask = cv.dilate(mask, cv.getStructuringElement(cv.MORPH_DILATE, (3, 3)), iterations=1)
-
     # We need connected components
     # Initialize the labels of the blobs in our binary image
     labels = measure.label(mask)
 
+    non_shadow_kernel_size = (shadow_dilation_kernel_size, shadow_dilation_kernel_size)
+    non_shadow_kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, non_shadow_kernel_size)
 
     CHANNEL_MAX = 255
 
@@ -208,11 +180,9 @@ def process_regions(org_image: np.ndarray,
                 contours, hierarchy = cv.findContours(temp_filter, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
                 if lab_adjustment:
-                    shadow_clear_img = correct_region_lab(lab_img, shadow_clear_img,
-                                                          shadow_indices, non_shadow_indices)
+                    shadow_clear_img = correct_region_lab(lab_img, shadow_clear_img, shadow_indices, non_shadow_indices)
                 else:
-                    shadow_clear_img = correct_region_bgr(org_image, shadow_clear_img,
-                                                          shadow_indices, non_shadow_indices)
+                    shadow_clear_img = correct_region_bgr(org_image, shadow_clear_img, shadow_indices, non_shadow_indices)
 
                 # Then apply median filtering over edges to smooth them
                 # At least on the images I tried, this doesn't work as intended.
@@ -222,7 +192,6 @@ def process_regions(org_image: np.ndarray,
                 # is more interconnected, therefore filtering each channel independently wouldn't be correct
                 shadow_clear_img = edge_median_filter(cv.cvtColor(shadow_clear_img, cv.COLOR_BGR2HSV), contours)
                 if verbose:
-                    time.sleep(0.2)
                     display_region(org_image, shadow_clear_img, label, temp_filter, contours)
 
     return shadow_clear_img
@@ -262,61 +231,17 @@ def calculate_mask(org_image: np.ndarray,
     return mask
 
 
-def calculate_mask_2(org_image: np.ndarray) -> np.ndarray:
-    # gray_image = cv.cvtColor(org_image, cv.COLOR_BGR2GRAY)
-    lab_l_image = cv.cvtColor(org_image, cv.COLOR_BGR2LAB)
-    gray_image = lab_l_image[:, :, 0]
-
-    # Applying multi-Otsu threshold for the default value, generating three classes.
-    thresholds = threshold_multiotsu(gray_image, classes=3)
-
-    foreground = np.digitize(gray_image, bins=[thresholds[0]])
-
-    # Convert mask to boolean
-    suspected_shadows = foreground.astype(bool)
-
-    # Create an empty mask for true shadows
-    true_shadows = np.zeros_like(gray_image)
-
-    # Split the image into B, G, R channels
-    # R, G, B = org_image.split()
-    R = org_image[:, :, 0]
-    G = org_image[:, :, 1]
-    B = org_image[:, :, 2]
-
-    Ga = 40
-
-    # Iterate over each suspected shadow to determine if it's a true shadow or false
-    for i in range(gray_image.shape[0]):
-        for j in range(gray_image.shape[1]):
-            if not suspected_shadows[i, j]:
-                if B[i, j] + Ga < G[i, j]:
-                    # It's vegetation, rule out as shadow
-                    continue
-                else:
-                    # It's a true shadow
-                    true_shadows[i, j] = 255
-
-    kernel_size = (3, 3)
-    kernel = cv.getStructuringElement(cv.MORPH_CROSS, kernel_size)
-    # true_shadows = cv.morphologyEx(true_shadows, cv.MORPH_CLOSE, kernel, true_shadows, iterations=1)
-    # true_shadows = cv.morphologyEx(true_shadows, cv.MORPH_OPEN, kernel, true_shadows, iterations=1)
-    true_shadows = cv.erode(true_shadows, kernel, iterations=1)
-    #
-    # im = Image.fromarray(np.uint8(true_shadows))
-    # im.show()
-
-    return true_shadows
-
-
 def remove_shadows(org_image: np.ndarray,
+                   ab_threshold: int,
                    lab_adjustment: bool,
+                   region_adjustment_kernel_size: int,
                    shadow_dilation_iteration: int,
                    shadow_dilation_kernel_size: int,
                    shadow_size_threshold: int,
                    verbose: bool) -> Tuple[np.ndarray, np.ndarray]:
-    # mask = calculate_mask(org_image, ab_threshold=256, region_adjustment_kernel_size=10)
-    mask = calculate_mask_2(org_image)
+    mask = calculate_mask(org_image,
+                          ab_threshold,
+                          region_adjustment_kernel_size)
 
     shadow_clear_img = process_regions(org_image,
                                        mask,
@@ -331,69 +256,26 @@ def remove_shadows(org_image: np.ndarray,
     return shadow_clear_img, mask
 
 
-def split_image_into_tiles(image, tile_size):
-    tiles = []
-    h, w, _ = image.shape
-    for y in range(0, h, tile_size):
-        for x in range(0, w, tile_size):
-            tile = image[y:y+tile_size, x:x+tile_size]
-            tiles.append((tile, x, y))
-    return tiles
-
-
-def merge_tiles(tiles, image_shape, tile_size):
-    h, w, _ = image_shape
-    merged_image = np.zeros(image_shape, dtype=np.uint8)
-    for tile, x, y in tiles:
-        merged_image[y:y+tile_size, x:x+tile_size] = tile
-    return merged_image
-
-
-def save_tile(name, img, sf_img, x, y):
-    if img.shape[0] == img.shape[1]:
-        path = name.split("/")
-        if not os.path.exists('/'.join(path[:-1]) + '/tiles/train_C/' + path[-1].split('.')[0]):
-            os.mkdir('/'.join(path[:-1]) + '/tiles/train_A/' + path[-1].split('.')[0])
-            os.mkdir('/'.join(path[:-1]) + '/tiles/train_C/' + path[-1].split('.')[0])
-
-        sf_name = '/'.join(path[:-1]) + '/tiles/train_C/' + path[-1].split('.')[0] + f"/{x}x{y}." + path[-1].split('.')[1]
-        f_name = '/'.join(path[:-1]) + '/tiles/train_A/' + path[-1].split('.')[0] + f"/{x}x{y}." + path[-1].split('.')[1]
-        cv.imwrite(sf_name, sf_img)
-        cv.imwrite(f_name, img)
-
-
 def process_image_file(img_name: str,
                        save: bool = False,
+                       ab_threshold: int = 256,
                        lab_adjustment: bool = False,
-                       shadow_dilation_kernel_size: int = 7,
-                       shadow_dilation_iteration: int = 8,
+                       region_adjustment_kernel_size: int = 10,
+                       shadow_dilation_kernel_size: int = 5,
+                       shadow_dilation_iteration: int = 3,
                        shadow_size_threshold: int = 2500,
                        verbose: bool = False) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     org_image = cv.imread(img_name)
-    # org_image = cv.cvtColor(org_image, cv.COLOR_BGR2RGB)
     print("Read the image {}".format(img_name))
-    tile_size = 512
 
-    # Split the image into tiles
-    tiles = split_image_into_tiles(org_image, tile_size)
-
-    # Process each tile to remove shadows
-    processed_tiles = []
-    processed_mask_tiles = []
-    for tile, x, y in tiles:
-        shadow_free_tile, mask_tile = remove_shadows(tile,
-                                                     lab_adjustment,
-                                                     shadow_dilation_iteration,
-                                                     shadow_dilation_kernel_size,
-                                                     shadow_size_threshold,
-                                                     verbose)
-        save_tile(img_name, tile, shadow_free_tile, x, y)
-        processed_tiles.append((shadow_free_tile, x, y))
-        processed_mask_tiles.append((mask_tile, x, y))
-
-    # Merge the processed tiles back into a single image
-    shadow_clear = merge_tiles(processed_tiles, org_image.shape, tile_size)
-    mask = merge_tiles(processed_mask_tiles, org_image.shape, tile_size)
+    shadow_clear, mask = remove_shadows(org_image,
+                                        ab_threshold,
+                                        lab_adjustment,
+                                        region_adjustment_kernel_size,
+                                        shadow_dilation_iteration,
+                                        shadow_dilation_kernel_size,
+                                        shadow_size_threshold,
+                                        verbose=verbose)
 
     _, axes = plt.subplots(1, 3)
     ax = axes.ravel()
@@ -421,88 +303,35 @@ def process_image_file(img_name: str,
     return org_image, mask, shadow_clear
 
 
-# if __name__ == "__main__":
-#     for img in [
-#         "DOF5-20240602-B0830.tif",
-#         "DOF5-20240602-D0717.tif",
-#         "DOF5-20240602-D0722.tif",
-#         "DOF5-20240602-D0732.tif",
-#         "DOF5-20240602-D0733.tif",
-#         "DOF5-20240602-D0737.tif",
-#         "DOF5-20240602-D0738.tif",
-#         "DOF5-20240602-D0747.tif",
-#         "DOF5-20240602-E0504.tif",
-#         "DOF5-20240602-E0514.tif",
-#         "DOF5-20240602-E0637.tif",
-#         "DOF5-20240602-E0644.tif",
-#         "DOF5-20240602-E0746.tif",
-#         "DOF5-20240620-D0722.tif",
-#         "DOF5-20240623-B0108.tif",
-#         "DOF5-20240623-C0103.tif",
-#         "DOF5-20240623-C0234.tif",
-#         "DOF5-20240623-E0835.tif",
-#         "DOF5-20240623-H0623.tif",
-#         "DOF5-20240623-I0901.tif",
-#         "DOF5-20240624-D0223.tif",
-#         "DOF5-20240624-D0517.tif",
-#         "DOF5-20240624-D0608.tif",
-#         "DOF5-20240624-G0730.tif",
-#         "DOF5-20240624-I0513.tif",
-#         "DOF5-20240624-I0818.tif",
-#         "DOF5-20240624-K1104.tif"
-#     ]:
-#         process_image_file(
-#             # '../../DOF_D96TM_2018_2021_83809_71597_16_2024-01-22_175803.jpg',
-#             f'../../img/merged/tiffs/{img}',
-#             True,
-#             True,
-#             4,
-#             5,
-#             16,
-#             False)
-
-
 if __name__ == "__main__":
-    image_files = [
-        # "DOF5-20240602-B0830640x5440.tif",
-        # "DOF5-20240624-K11043840x3840.tif",
-        "DOF5-20240602-B0830.tif",
-        "DOF5-20240602-D0717.tif",
-        "DOF5-20240602-D0732.tif",
-        "DOF5-20240602-D0733.tif",
-        "DOF5-20240602-D0737.tif",
-        "DOF5-20240602-D0738.tif",
-        "DOF5-20240602-D0747.tif",
-        "DOF5-20240602-E0504.tif",
-        "DOF5-20240602-E0514.tif",
-        "DOF5-20240602-E0637.tif",
-        "DOF5-20240602-E0644.tif",
-        "DOF5-20240602-E0746.tif",
-        "DOF5-20240620-D0722.tif",
-        "DOF5-20240623-B0108.tif",
-        "DOF5-20240623-C0103.tif",
-        "DOF5-20240623-C0234.tif",
-        "DOF5-20240623-E0835.tif",
-        "DOF5-20240623-H0623.tif",
-        "DOF5-20240623-I0901.tif",
-        "DOF5-20240624-D0223.tif",
-        "DOF5-20240624-D0517.tif",
-        "DOF5-20240624-D0608.tif",
-        "DOF5-20240624-G0730.tif",
-        "DOF5-20240624-I0513.tif",
-        "DOF5-20240624-I0818.tif",
-        "DOF5-20240624-K1104.tif"
-    ]
-
-    file_paths = [f'../../img/merged/tiffs/{img}' for img in image_files]
-
-    params = (True, True, 4, 5, 16, False)
-
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        futures = [executor.submit(process_image_file, file_path, *params) for file_path in file_paths]
-
-        for future in concurrent.futures.as_completed(futures):
-            try:
-                future.result()
-            except Exception as e:
-                print(f"An error occurred: {e}")
+    for img in [
+        "DOF5-20240602-K1013 micro.tif",
+        # "DOF5-20240620-D0722.tif",
+        # "DOF5-20240623-B0102.tif",
+        # "DOF5-20240623-B0108.tif",
+        # "DOF5-20240623-B0113.tif",
+        # "DOF5-20240623-B0115.tif",
+        # "DOF5-20240623-C0103.tif",
+        # "DOF5-20240623-C0234.tif",
+        # "DOF5-20240623-E0835.tif",
+        # "DOF5-20240623-H0623.tif",
+        # "DOF5-20240623-I0901.tif",
+        # "DOF5-20240624-D0223.tif",
+        # "DOF5-20240624-D0517.tif",
+        # "DOF5-20240624-D0608.tif",
+        # "DOF5-20240624-G0730.tif",
+        # "DOF5-20240624-I0513.tif",
+        # "DOF5-20240624-I0818.tif",
+        # "DOF5-20240624-K1104.tif",
+    ]:
+        process_image_file(
+            # '../../DOF_D96TM_2018_2021_83809_71597_16_2024-01-22_175803.jpg',
+            f'../../img/merged/tiffs/{img}',
+            True,
+            3,
+            True,
+            10,
+            2,
+            3,
+            3,
+            True)

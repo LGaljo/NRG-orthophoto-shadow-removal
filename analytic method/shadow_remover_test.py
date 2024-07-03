@@ -10,10 +10,8 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--image', help="Image of interest", default="../13-2.png")
     parser.add_argument('-s', '--save', help="Save the result",
                         default=True, nargs='?')
-    parser.add_argument('--ab', help="AB channel mean sum threshold", type=int, default=256)
     parser.add_argument('--lab', help="Adjust the pixel values according to LAB",
                         default=False, nargs='?')
-    parser.add_argument('--rk', help="Region Adjustment Kernel Size", type=int, default=10)
     parser.add_argument('--sdk', help="Shadow Dilation Kernel Size", type=int, default=3)
     parser.add_argument('--sdi', help="Shadow Dilation Iteration", type=int, default=5)
     parser.add_argument('--sst', help="Shadow size threshold", type=int, default=2500)
