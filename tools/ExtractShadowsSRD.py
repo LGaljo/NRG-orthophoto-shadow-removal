@@ -3,10 +3,10 @@ import os
 
 from tools.ExtractShadows import extract_shadow_mask_in_lab
 
-root_path = "../SRD/SRD_Train/Train/"
-image_path = "../SRD/SRD_Train/Train/shadow_free/*.jpg"
-image_path_shadow = "../SRD/SRD_Train/Train/shadow/*.jpg"
-image_path_mask = "../SRD/SRD_Train/Train/shadow_mask"
+root_path = "../dataset/SRD/SRD_Train/Train/"
+image_path = "../dataset/SRD/SRD_Train/Train/shadow_free/*.jpg"
+image_path_shadow = "../dataset/SRD/SRD_Train/Train/shadow/*.jpg"
+image_path_mask = "../dataset/SRD/SRD_Train/Train/shadow_mask"
 
 """
 Split large image image into tiles.

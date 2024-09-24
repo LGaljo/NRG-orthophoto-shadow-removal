@@ -6,6 +6,7 @@ img
 .idea
 __pycache__/
 report
-mydataset
+dataset/mydataset
 *.tif
-unet/output_*/*
+unet/output*/*
+dataset
