@@ -3,17 +3,24 @@ import torch
 import os
 
 # initial_time = datetime.now().strftime("%Y%m%d%H%M%S")
-initial_time = "20240630001817"
+initial_time = "20240924103722"
 
 # base path of the dataset
-DATASET_PATH = os.path.join("..", "unity_dataset", "tiny_trees_dataset")
+DATASET_PATH = os.path.join("..", "dataset", "ortophoto_pretraining")
 
 # define the path to the shadow images and shadowless images dataset
 IMAGE_DATASET_PATH = os.path.join(DATASET_PATH, "train_A")
 GT_DATASET_PATH = os.path.join(DATASET_PATH, "train_C")
 
 # define the test split
-TEST_SPLIT = 0.15
+EVAL_SPLIT = 0.1
+
+# Path to the saved checkpoint
+LOAD_MODEL = None
+#LOAD_MODEL = os.path.join("output", "output_20240923232117", "unet_shadow_20240923232117_e75.pth")
+
+# Freezes encoder layers
+FINE_TUNE = False
 
 # determine the device to be used for training and evaluation
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -29,7 +36,7 @@ BATCH_NORM = True
 # initialize learning rate, number of epochs to train for, and the
 # batch size
 INIT_LR = 0.0001
-NUM_EPOCHS = 100
+NUM_EPOCHS = 75
 BATCH_SIZE = 8
 
 # define the input image dimensions
@@ -37,7 +44,7 @@ INPUT_IMAGE_WIDTH = 256
 INPUT_IMAGE_HEIGHT = 256
 
 # define the path to the base output directory
-BASE_OUTPUT = f"./output_{initial_time}"
+BASE_OUTPUT = f"./output/output_{initial_time}"
 
 # define the path to the output serialized model, model training
 # plot, and testing image paths
