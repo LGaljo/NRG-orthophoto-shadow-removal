@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import torch
 import time
 
-from unet.model_my2 import UNet
+from unet.model_unet import UNet
 
 
 def load_data():
