@@ -2,11 +2,12 @@ from datetime import datetime
 import torch
 import os
 
-# initial_time = datetime.now().strftime("%Y%m%d%H%M%S")
-initial_time = "20240924103722"
+initial_time = datetime.now().strftime("%Y%m%d%H%M%S")
+# initial_time = "20240924174440"
 
 # base path of the dataset
-DATASET_PATH = os.path.join("..", "dataset", "ortophoto_pretraining")
+DATASET_PATH = os.path.join("..", "dataset", "unity_dataset", "mixed_visibility_dataset/train")
+# DATASET_PATH = os.path.join("..", "dataset", "ortophoto_pretraining")
 
 # define the path to the shadow images and shadowless images dataset
 IMAGE_DATASET_PATH = os.path.join(DATASET_PATH, "train_A")
@@ -36,7 +37,7 @@ BATCH_NORM = True
 # initialize learning rate, number of epochs to train for, and the
 # batch size
 INIT_LR = 0.0001
-NUM_EPOCHS = 75
+NUM_EPOCHS = 100
 BATCH_SIZE = 8
 
 # define the input image dimensions

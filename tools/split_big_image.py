@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 # subset_path = "../unity_dataset/many_houses_dataset/full_size/DOF5-20240602-D0733*.png"
-fullsize_path = "../dataset/unity_dataset/many_houses_dataset/full_size/*.png"
+fullsize_path = "C:\\Users\\lukag\\AppData\\LocalLow\\Magistrska naloge - Luka Galjot\\Mag Generate Shadows/*.png"
 # subset_path = "C:\\Users\\lukag\\AppData\\LocalLow\\Magistrska naloge - Luka Galjot\\Mag Generate Shadows\\*.png"
 
 create_mask = False
@@ -20,7 +20,7 @@ with_mp = True
 
 test_size = 0.1
 
-dataset_root = '../unity_dataset/many_houses_dataset/'
+dataset_root = '../dataset/unity_dataset/mixed_visibility_dataset/'
 image_train = 'train_A'
 image_mask = 'train_B'
 image_ground_truth = 'train_C'
@@ -72,7 +72,7 @@ def process_image(image_path):
             if tile.shape[0] == 3:
                 tile = tile.permute(1, 2, 0).contiguous().view(tile_size, tile_size, 3)
 
-            save_image(tile, folder_path, filename, idx)
+            save_image(tile, dataset_root + folder_path, filename, idx)
             idx += 1
 
 
@@ -141,12 +141,12 @@ def split_train_test():
 
 
 if __name__ == '__main__':
-    if not os.path.exists(image_train):
-        os.mkdir(image_train)
-    if not os.path.exists(image_mask) and create_mask:
-        os.mkdir(image_mask)
-    if not os.path.exists(image_ground_truth):
-        os.mkdir(image_ground_truth)
+    if not os.path.exists(dataset_root + image_train):
+        os.mkdir(dataset_root + image_train)
+    if not os.path.exists(dataset_root + image_mask) and create_mask:
+        os.mkdir(dataset_root + image_mask)
+    if not os.path.exists(dataset_root + image_ground_truth):
+        os.mkdir(dataset_root + image_ground_truth)
 
     subset_images = glob.glob(fullsize_path)
 

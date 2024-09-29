@@ -1,6 +1,8 @@
 # USAGE
 # python predict.py
 # import the necessary packages
+import glob
+
 from PIL import Image
 
 import config
@@ -8,7 +10,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import os
-
 
 def prepare_plot(origImage, origMask, predMask):
     # initialize our figure
@@ -80,16 +81,20 @@ if __name__ == '__main__':
     # load the image paths in our testing file and randomly select 10
     # image paths
     print("[INFO] loading up test image paths...")
+    imagePaths = []
     # imagePaths = open(config.TEST_PATHS).read().strip().split("\n")
     # imagePaths = np.random.choice(imagePaths, size=10)
-    imagePaths = []
     imagePaths = np.append(imagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-27.png")
     imagePaths = np.append(imagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-74.png")
     imagePaths = np.append(imagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-B0830-278.png")
+    imagePaths = np.append(imagePaths, "../dataset/ortophoto_pretraining/train_A/DOF5-20240602-D0717-27.png")
+    imagePaths = np.append(imagePaths, "../dataset/ortophoto_pretraining/train_A/DOF5-20240602-D0717-74.png")
+    imagePaths = np.append(imagePaths, "../dataset/ortophoto_pretraining/train_A/DOF5-20240602-B0830-278.png")
 
     # load our model from disk and flash it to the current device
     print("[INFO] load up model...")
-    unet = torch.load(config.MODEL_PATH).to(config.DEVICE)
+    model = glob.glob(config.BASE_OUTPUT + "/*.pth")
+    unet = torch.load(model[0]).to(config.DEVICE)
 
     # iterate over the randomly selected test image paths
     for path in imagePaths:
