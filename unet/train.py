@@ -36,14 +36,27 @@ def load_data():
     # train_si = train_si[:15]
     # train_gti = train_gti[:15]
 
+    # define transformations
     test_transform = transforms.Compose([
         transforms.ToTensor()
     ])
 
-    # define transformations
     train_transforms = transforms.Compose([
         transforms.RandomResizedCrop(size=(config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_WIDTH), scale=(0.8, 1.0), ratio=(0.75, 1.33)),
         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        transforms.RandomChoice([
+            transforms.RandomRotation((0, 0)),
+            transforms.RandomRotation((90, 90)),
+            transforms.RandomRotation((180, 180)),
+            transforms.RandomRotation((270, 270)),
+        ]),
+        transforms.ToTensor()
+    ])
+
+    pretrain_transforms = transforms.Compose([
+        transforms.RandomResizedCrop(size=(config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_WIDTH), scale=(0.8, 1.0), ratio=(0.75, 1.33)),
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
         transforms.RandomChoice([
@@ -186,6 +199,7 @@ def show_plot(H):
     plt.ylabel("Loss")
     plt.legend(loc="upper right")
     plt.savefig(config.PLOT_PATH)
+    plt.close()
 
 
 if __name__ == '__main__':

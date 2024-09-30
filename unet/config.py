@@ -2,8 +2,8 @@ from datetime import datetime
 import torch
 import os
 
-initial_time = datetime.now().strftime("%Y%m%d%H%M%S")
-# initial_time = "20240924174440"
+# initial_time = datetime.now().strftime("%Y%m%d%H%M%S")
+initial_time = "20240929220403"
 
 # base path of the dataset
 DATASET_PATH = os.path.join("..", "dataset", "unity_dataset", "mixed_visibility_dataset/train")

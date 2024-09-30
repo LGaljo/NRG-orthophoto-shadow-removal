@@ -41,7 +41,7 @@ def make_predictions(model, imagePath):
 
         # resize the image and make a copy of it for visualization
         image = image.resize((256, 256))
-        image = np.array(image) / 255.0
+        image = np.array(image) / 256
         image = image.astype(np.float32)
         og_image = image.copy()
 
