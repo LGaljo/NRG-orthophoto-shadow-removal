@@ -2,6 +2,9 @@
 # python train.py
 # import the necessary packages
 import os
+import random
+
+import numpy as np
 
 from dataset import ImageLoaderDataset
 import config
@@ -18,11 +21,33 @@ import time
 
 from unet.model_unet import UNet
 
+info_file = None
+
+
+def write_info():
+    # info_file = open(os.path.join(config.BASE_OUTPUT, "info.md"), "w")
+    info_file.writelines([
+        "# Training info for NN model U-Net\n\n",
+        f"Start time is: {config.initial_time}\n\n",
+        "\n\n",
+        f"Epochs: {config.NUM_EPOCHS}\n\n",
+        f"LR: {config.INIT_LR}\n\n",
+        f"Image input size: {config.INPUT_IMAGE_WIDTH}x{config.INPUT_IMAGE_HEIGHT}\n\n",
+        f"Batch normalization: {config.BATCH_NORM}\n\n",
+        f"Load model: {config.LOAD_MODEL}\n\n",
+        f"Fine tune (freeze encoder layers): {config.FINE_TUNE}\n\n",
+        f"\n\n",
+        f"Training images: {config.IMAGE_DATASET_PATH}\n\n",
+        f"Ground truth images: {config.GT_DATASET_PATH}\n\n",
+        f"Train/eval split (of training images): {config.EVAL_SPLIT}\n\n",
+        "\n\n",
+    ])
+
 
 def load_data():
     # load the image and mask filepaths in a sorted manner
-    shadow_image = sorted(list(paths.list_images(config.IMAGE_DATASET_PATH)))
-    gt_image = sorted(list(paths.list_images(config.GT_DATASET_PATH)))
+    shadow_image = sorted(list(paths.list_images(os.path.join(config.DATASET_PATH, "train_A"))))
+    gt_image = sorted(list(paths.list_images(os.path.join(config.DATASET_PATH, "train_C"))))
 
     # partition the data into training and evaluation splits using part of
     # the data for training and the remaining for evaluation during training
@@ -32,50 +57,54 @@ def load_data():
     (train_si, eval_si) = split[:2]
     (train_gti, eval_gti) = split[2:]
 
+
     # TODO: Disable on real training
-    # train_si = train_si[:15]
-    # train_gti = train_gti[:15]
+    # train_si = train_si[1000:]
+    # train_gti = train_gti[1000:]
+    # eval_si = eval_si[100:]
+    # eval_gti = eval_gti[100:]
+    # train_si = train_si[0::15]
+    # train_gti = train_gti[0::15]
+    # eval_si = eval_si[0::15]
+    # eval_gti = eval_gti[0::15]
 
     # define transformations
-    test_transform = transforms.Compose([
-        transforms.ToTensor()
-    ])
+    test_transform = []
 
-    train_transforms = transforms.Compose([
-        transforms.RandomResizedCrop(size=(config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_WIDTH), scale=(0.8, 1.0), ratio=(0.75, 1.33)),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.RandomChoice([
-            transforms.RandomRotation((0, 0)),
-            transforms.RandomRotation((90, 90)),
-            transforms.RandomRotation((180, 180)),
-            transforms.RandomRotation((270, 270)),
-        ]),
-        transforms.ToTensor()
-    ])
+    transforms_ds = ['Resize']
+
+    train_transforms = [
+        'RandomResizedCrop',
+        'ColorJitter',
+        'RandomHorizontalFlip'
+        'RandomVerticalFlip',
+        'RandomRotation',
+    ]
 
     pretrain_transforms = transforms.Compose([
-        transforms.RandomResizedCrop(size=(config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_WIDTH), scale=(0.8, 1.0), ratio=(0.75, 1.33)),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.RandomChoice([
-            transforms.RandomRotation((0, 0)),
-            transforms.RandomRotation((90, 90)),
-            transforms.RandomRotation((180, 180)),
-            transforms.RandomRotation((270, 270)),
-        ]),
-        transforms.ToTensor()
+        'Resize',
+        'ColorJitter',
+        'GaussianNoise',
+        'RandomHorizontalFlip'
+        'RandomVerticalFlip',
+        'RandomRotation',
     ])
 
     # create the train and evaluation datasets
     trainDS = ImageLoaderDataset(train_paths=train_si, gt_paths=train_gti, transforms=train_transforms)
-    evalDS = ImageLoaderDataset(train_paths=eval_si, gt_paths=eval_gti, transforms=test_transform)
+    evalDS = ImageLoaderDataset(train_paths=eval_si, gt_paths=eval_gti, transforms=train_transforms)
     print(f"[INFO] found {len(trainDS)} examples in the training set...")
     print(f"[INFO] found {len(evalDS)} examples in the eval set...")
 
+    info_file.writelines([
+        f"Train set transforms: {train_transforms}\n\n",
+        f"Evaluation set transforms: {train_transforms}\n\n",
+        f"Train set contains {len(trainDS)} image pairs\n\n",
+        f"Evaluation set contains {len(evalDS)} image pairs\n\n",
+    ])
+
     # create the training and eval data loaders
-    trainLoader = DataLoader(trainDS, shuffle=True, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY)
+    trainLoader = DataLoader(trainDS, shuffle=False, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY)
     evalLoader = DataLoader(evalDS, shuffle=False, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY)
 
     # calculate steps per epoch for training and eval set
@@ -170,16 +199,20 @@ def train(unet, trainLoader, evalLoader, trainSteps, evalSteps):
         print(f"[INFO] EPOCH: {e + 1}/{config.NUM_EPOCHS}")
         print("Train loss: {:.6f}, Eval loss: {:.4f}".format(avgTrainLoss, avgEvalLoss))
 
+        info_file.writelines([
+            f"[INFO] EPOCH: {e + 1}/{config.NUM_EPOCHS}",
+            "Train loss: {:.6f}, Eval loss: {:.4f}".format(avgTrainLoss, avgEvalLoss),
+        ])
+
         show_plot(H)
-        torch.save(unet, config.MODEL_PATH)
+        if (e+1) % 5 == 0:
+            torch.save(unet, os.path.join(config.BASE_OUTPUT, f"unet_shadow_{config.initial_time}_e{e+1}.pth"))
+        torch.save(unet, os.path.join(config.BASE_OUTPUT, f"unet_shadow_{config.initial_time}.pth"))
 
     # display the total time needed to perform the training
     endTime = time.time()
 
     print_results(startTime, endTime, H)
-
-    # serialize the model to disk
-    torch.save(unet, config.MODEL_PATH)
 
 
 def print_results(startTime, endTime, H):
@@ -205,6 +238,9 @@ def show_plot(H):
 if __name__ == '__main__':
     if not os.path.exists(config.BASE_OUTPUT):
         os.mkdir(config.BASE_OUTPUT)
+    info_file = open(os.path.join(config.BASE_OUTPUT, "info.md"), "w")
+    write_info()
     trainLoader, evalLoader, trainSteps, evalSteps = load_data()
     unet = load_model()
     train(unet, trainLoader, evalLoader, trainSteps, evalSteps)
+    info_file.close()

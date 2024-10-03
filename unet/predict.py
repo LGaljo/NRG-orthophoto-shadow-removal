@@ -11,6 +11,10 @@ import numpy as np
 import torch
 import os
 
+TimagePaths = []
+GTimagePaths = []
+
+
 def prepare_plot(origImage, origMask, predMask):
     # initialize our figure
     figure, ax = plt.subplots(nrows=1, ncols=3, figsize=(10, 10))
@@ -28,35 +32,33 @@ def prepare_plot(origImage, origMask, predMask):
     # set the layout of the figure and display it
     figure.tight_layout()
     figure.show()
+    plt.close()
 
 
-def make_predictions(model, imagePath):
+def make_predictions(model, path_t, path_gt):
     # set model to evaluation mode
     model.eval()
     # turn off gradient tracking
     with torch.no_grad():
         # load the image from disk, swap its color channels, cast it
         # to float data type, and scale its pixel values
-        image = Image.open(imagePath).convert('RGB')
+        image = Image.open(path_t).convert('RGB')
 
         # resize the image and make a copy of it for visualization
-        image = image.resize((256, 256))
-        image = np.array(image) / 256
+        image = image.resize((config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_HEIGHT))
+        image = np.array(image) / 255
         image = image.astype(np.float32)
         og_image = image.copy()
 
         # find the filename and generate the path to ground truth
         # mask
         gtMask = np.ones_like(image)
-        try:
-            filename = imagePath.split(os.path.sep)[-1]
-            groundTruthPath = os.path.join(config.GT_DATASET_PATH, filename)
-
+        if gt_path is not None:
             # load the ground-truth segmentation mask in grayscale mode
             # and resize it
-            gtMask = Image.open(groundTruthPath)
+            gtMask = Image.open(gt_path)
             gtMask = gtMask.resize((config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_HEIGHT))
-        except:
+        else:
             print('No GT image')
 
         # make the channel axis to be the leading one, add a batch
@@ -78,25 +80,37 @@ def make_predictions(model, imagePath):
 
 
 if __name__ == '__main__':
+    TimagePaths = glob.glob(os.path.join(config.TESTSET_PATH, "train_A", "*.png"))
+    GTimagePaths = glob.glob(os.path.join(config.TESTSET_PATH, "train_C", "*.png"))
+
     # load the image paths in our testing file and randomly select 10
     # image paths
     print("[INFO] loading up test image paths...")
-    imagePaths = []
-    # imagePaths = open(config.TEST_PATHS).read().strip().split("\n")
     # imagePaths = np.random.choice(imagePaths, size=10)
-    imagePaths = np.append(imagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-27.png")
-    imagePaths = np.append(imagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-74.png")
-    imagePaths = np.append(imagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-B0830-278.png")
-    imagePaths = np.append(imagePaths, "../dataset/ortophoto_pretraining/train_A/DOF5-20240602-D0717-27.png")
-    imagePaths = np.append(imagePaths, "../dataset/ortophoto_pretraining/train_A/DOF5-20240602-D0717-74.png")
-    imagePaths = np.append(imagePaths, "../dataset/ortophoto_pretraining/train_A/DOF5-20240602-B0830-278.png")
+    TimagePaths = []
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-27.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-74.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-B0830-278.png")
+    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_A/DOF5-20240602-D0717-27.png")
+    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_A/DOF5-20240602-D0717-74.png")
+    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_A/DOF5-20240602-B0830-278.png")
+    TimagePaths = np.append(TimagePaths, "../dataset/unity_dataset/mixed_visibility_dataset_320/train/train_A/DOF5-20240602-D0717_shadowClear_12e28f16b79320f8-x255-z255-Hard-39.png")
+    TimagePaths = np.append(TimagePaths, "../dataset/unity_dataset/mixed_visibility_dataset_320/train/train_A/DOF5-20240602-D0717_shadowClear_63b003c5119215b3-x255-z195-Hard-2.png")
 
     # load our model from disk and flash it to the current device
     print("[INFO] load up model...")
-    model = glob.glob(config.BASE_OUTPUT + "/*.pth")
-    unet = torch.load(model[0]).to(config.DEVICE)
+    # model = glob.glob("output/output_20240930215622/unet_shadow_20240930215622.pth")
+    # model = glob.glob("output/output_20240630001817/unet_shadow_20240630001817_e100.pth")
+    # model = glob.glob("output/output_20240929220403/unet_shadow_20240929220403_e25.pth")
+    # model = glob.glob("output/output_20240930225008/unet_shadow_20240930225008_e30.pth")
+    # model = glob.glob("output/output_20241001074431/unet_shadow_20241001074431_e50.pth")
+    # model = glob.glob("output/output_20241001231452/unet_shadow_20241001231452_e200.pth")
+    # model = glob.glob("output/output_20241002213808/unet_shadow_20241002213808_e30.pth")
+    model = glob.glob("output/output_20241003154040/unet_shadow_20241003154040.pth")
+    i = 0
+    unet = torch.load(model[i]) #.to(config.DEVICE)
 
     # iterate over the randomly selected test image paths
-    for path in imagePaths:
+    for (t_path, gt_path) in zip(TimagePaths, GTimagePaths):
         # make predictions and visualize the results
-        make_predictions(unet, path)
+        make_predictions(unet, t_path, None)
