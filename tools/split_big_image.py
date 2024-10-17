@@ -20,7 +20,7 @@ with_mp = True
 
 test_size = 0.1
 
-dataset_root = '../dataset/unity_dataset/mixed_visibility_dataset/'
+dataset_root = '../dataset/unity_dataset/mixed_visibility_dataset_320/'
 image_train = 'train_A'
 image_mask = 'train_B'
 image_ground_truth = 'train_C'
@@ -29,8 +29,8 @@ pattern = r".*[-]([x]\d+)[-]([z]\d+)[-](\w*).*"
 # pattern = r"[-](.*)[-]([x]+\d+).*([z]+\d+).*[.]+.*"
 # pattern = r"^.*_([a-z0-9]+){1}-(x\d+)+-(z\d+)+"
 
-tile_size = 256
-resize_to = 256
+tile_size = 320
+resize_to = 320
 
 """
 Split large image image into tiles.
@@ -141,6 +141,8 @@ def split_train_test():
 
 
 if __name__ == '__main__':
+    if not os.path.exists(dataset_root):
+        os.mkdir(dataset_root)
     if not os.path.exists(dataset_root + image_train):
         os.mkdir(dataset_root + image_train)
     if not os.path.exists(dataset_root + image_mask) and create_mask:

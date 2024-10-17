@@ -20,6 +20,7 @@ import torch
 import time
 
 from unet.model_unet import UNet
+from unet.model_unet_smaller import UNetSmaller
 
 info_file = None
 
@@ -32,6 +33,7 @@ def write_info():
         "\n\n",
         f"Epochs: {config.NUM_EPOCHS}\n\n",
         f"LR: {config.INIT_LR}\n\n",
+        f"Dropout: {config.DROPOUT}\n\n",
         f"Image input size: {config.INPUT_IMAGE_WIDTH}x{config.INPUT_IMAGE_HEIGHT}\n\n",
         f"Batch normalization: {config.BATCH_NORM}\n\n",
         f"Load model: {config.LOAD_MODEL}\n\n",
@@ -42,6 +44,7 @@ def write_info():
         f"Train/eval split (of training images): {config.EVAL_SPLIT}\n\n",
         "\n\n",
     ])
+    info_file.flush()
 
 
 def load_data():
@@ -102,6 +105,7 @@ def load_data():
         f"Train set contains {len(trainDS)} image pairs\n\n",
         f"Evaluation set contains {len(evalDS)} image pairs\n\n",
     ])
+    info_file.flush()
 
     # create the training and eval data loaders
     trainLoader = DataLoader(trainDS, shuffle=False, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY)
@@ -118,7 +122,7 @@ def load_data():
 
 def load_model():
     # initialize our UNet model
-    unet = UNet()
+    unet = UNetSmaller()
 
     if config.LOAD_MODEL is not None:
         unet = torch.load(config.LOAD_MODEL)
@@ -203,6 +207,7 @@ def train(unet, trainLoader, evalLoader, trainSteps, evalSteps):
             f"[INFO] EPOCH: {e + 1}/{config.NUM_EPOCHS}",
             "Train loss: {:.6f}, Eval loss: {:.4f}".format(avgTrainLoss, avgEvalLoss),
         ])
+        info_file.flush()
 
         show_plot(H)
         if (e+1) % 5 == 0:
