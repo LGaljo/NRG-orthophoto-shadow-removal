@@ -9,7 +9,7 @@ import numpy as np
 from dataset import ImageLoaderDataset
 import config
 from torch.nn import MSELoss
-from torch.optim import Adam
+from torch.optim import Adam, AdamW
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 from torchvision import transforms
@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import torch
 import time
 
+from tools.noise import image
 from unet.model_unet import UNet
 from unet.model_unet_smaller import UNetSmaller
 
@@ -33,6 +34,8 @@ def write_info():
         "\n\n",
         f"Epochs: {config.NUM_EPOCHS}\n\n",
         f"LR: {config.INIT_LR}\n\n",
+        f"Weight decay: {config.WEIGHT_DECAY}\n\n",
+        f"Optimizer: Adam with weight decay\n\n",
         f"Dropout: {config.DROPOUT}\n\n",
         f"Image input size: {config.INPUT_IMAGE_WIDTH}x{config.INPUT_IMAGE_HEIGHT}\n\n",
         f"Batch normalization: {config.BATCH_NORM}\n\n",
@@ -49,8 +52,12 @@ def write_info():
 
 def load_data():
     # load the image and mask filepaths in a sorted manner
-    shadow_image = sorted(list(paths.list_images(os.path.join(config.DATASET_PATH, "train_A"))))
-    gt_image = sorted(list(paths.list_images(os.path.join(config.DATASET_PATH, "train_C"))))
+    shadow_image = []
+    gt_image = []
+    for image_dir in config.IMAGE_DATASET_PATHS:
+        shadow_image.extend(sorted(list(paths.list_images(image_dir))))
+    for image_dir in config.GT_DATASET_PATHS:
+        gt_image.extend(sorted(list(paths.list_images(image_dir))))
 
     # partition the data into training and evaluation splits using part of
     # the data for training and the remaining for evaluation during training
@@ -122,7 +129,8 @@ def load_data():
 
 def load_model():
     # initialize our UNet model
-    unet = UNetSmaller()
+    unet = UNet()
+    # unet = UNetSmaller()
 
     if config.LOAD_MODEL is not None:
         unet = torch.load(config.LOAD_MODEL)
@@ -141,7 +149,7 @@ def train(unet, trainLoader, evalLoader, trainSteps, evalSteps):
 
     # initialize loss function and optimizer
     lossFunc = MSELoss().to(config.DEVICE)
-    optimizer = Adam(unet.parameters(), lr=config.INIT_LR)
+    optimizer = AdamW(unet.parameters(), lr=config.INIT_LR, weight_decay=config.WEIGHT_DECAY)
 
     torch.backends.cudnn.benchmark = True
 
@@ -204,8 +212,8 @@ def train(unet, trainLoader, evalLoader, trainSteps, evalSteps):
         print("Train loss: {:.6f}, Eval loss: {:.4f}".format(avgTrainLoss, avgEvalLoss))
 
         info_file.writelines([
-            f"[INFO] EPOCH: {e + 1}/{config.NUM_EPOCHS}",
-            "Train loss: {:.6f}, Eval loss: {:.4f}".format(avgTrainLoss, avgEvalLoss),
+            f"[INFO] EPOCH: {e + 1}/{config.NUM_EPOCHS}\n",
+            "Train loss: {:.6f}, Eval loss: {:.4f}\n".format(avgTrainLoss, avgEvalLoss),
         ])
         info_file.flush()
 

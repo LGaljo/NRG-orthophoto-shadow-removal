@@ -7,14 +7,25 @@ initial_time = datetime.now().strftime("%Y%m%d%H%M%S")
 
 # base path of the dataset
 # DATASET_PATH = os.path.join("..", "dataset", "unity_dataset", "mixed_visibility_dataset", "train")
-# DATASET_PATH = os.path.join("..", "dataset", "unity_dataset", "mixed_visibility_dataset_320/train")
+# TESTSET_PATH = os.path.join("..", "dataset", "unity_dataset", "mixed_visibility_dataset", "test")
+# DATASET_PATH = os.path.join("..", "dataset", "unity_dataset", "mixed_visibility_dataset_320", "train")
+# TESTSET_PATH = os.path.join("..", "dataset", "unity_dataset", "mixed_visibility_dataset_320", "test")
 DATASET_PATH = os.path.join("..", "dataset", "ortophoto_pretraining")
 TESTSET_PATH = os.path.join("..", "dataset", "ortophoto_pretraining")
-# TESTSET_PATH = os.path.join("..", "dataset", "unity_dataset", "mixed_visibility_dataset", "test")
 
 # define the path to the shadow images and shadowless images dataset
 IMAGE_DATASET_PATH = os.path.join(DATASET_PATH, "train_A")
 GT_DATASET_PATH = os.path.join(DATASET_PATH, "train_C")
+
+IMAGE_DATASET_PATHS = [
+    IMAGE_DATASET_PATH,
+    # "C:\\Users\\lukag\\Documents\\Projects\\Faks\\MAG\\datasets\\SRD_Train\\Train\\shadow"
+]
+
+GT_DATASET_PATHS = [
+    GT_DATASET_PATH,
+    # "C:\\Users\\lukag\\Documents\\Projects\\Faks\\MAG\\datasets\\SRD_Train\\Train\\shadow_free"
+]
 
 SAVE_TRANSFORMS = False
 
@@ -22,8 +33,8 @@ SAVE_TRANSFORMS = False
 EVAL_SPLIT = 0.1
 
 # Path to the saved checkpoint
-# LOAD_MODEL = None
-LOAD_MODEL = os.path.join("output/output_20241002213808/unet_shadow_20241002213808_e60.pth")
+LOAD_MODEL = None
+# LOAD_MODEL = os.path.join("output/output_20241017195322/unet_shadow_20241017195322_e35.pth")
 
 # Freezes encoder layers
 # FINE_TUNE = True
@@ -42,10 +53,11 @@ BATCH_NORM = True
 
 # initialize learning rate, number of epochs to train for, and the
 # batch size
-INIT_LR = 1e-3
-DROPOUT = 0.3
-NUM_EPOCHS = 500
+INIT_LR = 1e-4
+DROPOUT = 0.5
+NUM_EPOCHS = 100
 BATCH_SIZE = 8
+WEIGHT_DECAY = 1e-4
 
 # define the input image dimensions
 INPUT_IMAGE_WIDTH = 256

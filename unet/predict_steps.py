@@ -1,10 +1,5 @@
-# USAGE
-# python predict.py
-# import the necessary packages
 import glob
-
 from PIL import Image
-
 import config
 import matplotlib.pyplot as plt
 import numpy as np
@@ -100,11 +95,11 @@ if __name__ == '__main__':
     # model = glob.glob("output/output_20241001231452/unet_shadow_20241001231452_e200.pth")
     # model = glob.glob("output/output_20241002213808/unet_shadow_20241002213808_e30.pth")
     # iterate over the randomly selected test image paths
-    for epoch in range(5, 61, 5):
+    for epoch in range(5, 126, 5):
         print("test " + str(epoch))
-        model = glob.glob(f"output/output_20241002213808/unet_shadow_20241002213808_e{epoch}.pth")
-        # model = glob.glob(f"output/output_20241003154040/unet_shadow_20241003154040_e{epoch}.pth")
-        # model = glob.glob(f"output/output_20241003154040/unet_shadow_20241003154040_e{epoch}.pth")
+        # model = glob.glob(f"output/output_20241018173347/unet_shadow_20241018173347_e{epoch}.pth")
+        # model = glob.glob(f"output/output_20241019231437/unet_shadow_20241019231437_e{epoch}.pth")
+        model = glob.glob(f"output/output_20241003154040/unet_shadow_20241003154040_e{epoch}.pth")
         i = 0
         unet = torch.load(model[i]) #.to(config.DEVICE)
 

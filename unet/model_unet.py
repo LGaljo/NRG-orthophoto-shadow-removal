@@ -1,4 +1,4 @@
-import config
+from unet import config
 from torch.nn import ConvTranspose2d, BatchNorm2d, Dropout, Conv2d, MaxPool2d, Module, ReLU, Sigmoid, Sequential
 from torch import cat, mul, add
 
