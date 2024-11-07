@@ -18,6 +18,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import torch
 import time
+from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.distributed as dist
 
 from tools.noise import image
 from unet.model_unet import UNet
@@ -100,23 +102,27 @@ def load_data():
         'RandomRotation',
     ])
 
+    train_sampler = DistributedSampler(trainDS)
+    eval_sampler = DistributedSampler(evalDS)
+
     # create the train and evaluation datasets
     trainDS = ImageLoaderDataset(train_paths=train_si, gt_paths=train_gti, transforms=train_transforms)
     evalDS = ImageLoaderDataset(train_paths=eval_si, gt_paths=eval_gti, transforms=train_transforms)
     print(f"[INFO] found {len(trainDS)} examples in the training set...")
     print(f"[INFO] found {len(evalDS)} examples in the eval set...")
 
-    info_file.writelines([
-        f"Train set transforms: {train_transforms}\n\n",
-        f"Evaluation set transforms: {train_transforms}\n\n",
-        f"Train set contains {len(trainDS)} image pairs\n\n",
-        f"Evaluation set contains {len(evalDS)} image pairs\n\n",
-    ])
-    info_file.flush()
+    if dist.get_rank() == 0:
+        info_file.writelines([
+            f"Train set transforms: {train_transforms}\n\n",
+            f"Evaluation set transforms: {train_transforms}\n\n",
+            f"Train set contains {len(trainDS)} image pairs\n\n",
+            f"Evaluation set contains {len(evalDS)} image pairs\n\n",
+        ])
+        info_file.flush()
 
     # create the training and eval data loaders
-    trainLoader = DataLoader(trainDS, shuffle=False, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY)
-    evalLoader = DataLoader(evalDS, shuffle=False, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY)
+    trainLoader = DataLoader(trainDS, shuffle=False, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY, sampler=train_sampler)
+    evalLoader = DataLoader(evalDS, shuffle=False, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY, sampler=eval_sampler)
 
     # calculate steps per epoch for training and eval set
     trainSteps = len(trainDS) // config.BATCH_SIZE
@@ -142,6 +148,8 @@ def load_model():
                     p.requires_grad = False
 
     unet.to(config.DEVICE)
+
+    unet = DDP(unet, device_ids=[0,1])  # Wrap model in DDP
 
     return unet
 
@@ -211,16 +219,17 @@ def train(unet, trainLoader, evalLoader, trainSteps, evalSteps):
         print(f"[INFO] EPOCH: {e + 1}/{config.NUM_EPOCHS}")
         print("Train loss: {:.6f}, Eval loss: {:.4f}".format(avgTrainLoss, avgEvalLoss))
 
-        info_file.writelines([
-            f"[INFO] EPOCH: {e + 1}/{config.NUM_EPOCHS}\n",
-            "Train loss: {:.6f}, Eval loss: {:.4f}\n".format(avgTrainLoss, avgEvalLoss),
-        ])
-        info_file.flush()
+        if dist.get_rank() == 0:
+            info_file.writelines([
+                f"[INFO] EPOCH: {e + 1}/{config.NUM_EPOCHS}\n",
+                "Train loss: {:.6f}, Eval loss: {:.4f}\n".format(avgTrainLoss, avgEvalLoss),
+            ])
+            info_file.flush()
 
-        show_plot(H)
-        if (e+1) % 5 == 0:
-            torch.save(unet, os.path.join(config.BASE_OUTPUT, f"unet_shadow_{config.initial_time}_e{e+1}.pth"))
-        torch.save(unet, os.path.join(config.BASE_OUTPUT, f"unet_shadow_{config.initial_time}.pth"))
+            show_plot(H)
+            if (e+1) % 5 == 0:
+                torch.save(unet, os.path.join(config.BASE_OUTPUT, f"unet_shadow_{config.initial_time}_e{e+1}.pth"))
+            torch.save(unet, os.path.join(config.BASE_OUTPUT, f"unet_shadow_{config.initial_time}.pth"))
 
     # display the total time needed to perform the training
     endTime = time.time()
@@ -249,11 +258,21 @@ def show_plot(H):
 
 
 if __name__ == '__main__':
+    # Initialize process group for distributed training
+    dist.init_process_group(backend='gloo', init_method='env://')
+
     if not os.path.exists(config.BASE_OUTPUT):
         os.mkdir(config.BASE_OUTPUT)
-    info_file = open(os.path.join(config.BASE_OUTPUT, "info.md"), "w")
-    write_info()
+
+    if dist.get_rank() == 0:
+        info_file = open(os.path.join(config.BASE_OUTPUT, "info.md"), "w")
+        write_info()
     trainLoader, evalLoader, trainSteps, evalSteps = load_data()
     unet = load_model()
     train(unet, trainLoader, evalLoader, trainSteps, evalSteps)
-    info_file.close()
+
+    if dist.get_rank() == 0:
+        info_file.close()
+
+    # Clean up process group after training is complete
+    dist.destroy_process_group()
