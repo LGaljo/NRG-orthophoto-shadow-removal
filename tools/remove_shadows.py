@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import cv2
 import numpy as np
 import torch
@@ -5,13 +7,13 @@ import torch
 image_path = "../DJI_20241015105147_0009_D.JPG"
 
 with_mp = True
-stride_height, stride_width = (4, 4)
-tile_height, tile_width = (8, 8)
+stride_height, stride_width = (128, 128)
+tile_height, tile_width = (256, 256)
 
 
 class RemoveShadows:
     def __init__(self, path_to_model):
-        self.model = torch.load(path_to_model).to("cuda")
+        self.model = torch.load(path_to_model, weights_only=False).to("cuda")
 
     def remove_shadows(self, tile):
         input_size = tile.shape
@@ -47,7 +49,7 @@ class RemoveShadows:
         for y in range(0, extended_height - tile_height + 1, stride_height):
             for x in range(0, extended_width - tile_width + 1, stride_width):
                 tile = (image[y:y + tile_height, x:x + tile_width])
-                # tile = self.remove_shadows(tile)
+                tile = self.remove_shadows(tile)
 
                 tile_weight = np.ones((tile.shape[0], tile.shape[1], img_channels), dtype=np.float32)
                 output_image[y:y + tile.shape[0], x:x + tile.shape[1]] += tile
@@ -64,11 +66,13 @@ class RemoveShadows:
 if __name__ == '__main__':
     image = cv2.imread(image_path)
     # remover = RemoveShadows("../unet/output/output_20241003154040/unet_shadow_20241003154040_e95.pth")
-    remover = RemoveShadows("../unet/output/output_20241003154040/unet_shadow_20241003154040_e115.pth")
+    # remover = RemoveShadows("../unet/output/output_20241003154040/unet_shadow_20241003154040_e115.pth")
     # remover = RemoveShadows("../unet/output/output_20241019231437/unet_shadow_20241019231437_e70.pth")
+    remover = RemoveShadows("../unet/output/output_20241108171754/unet_shadow_20241108171754_e25.pth")
+    # remover = RemoveShadows("../unet/output/output_20241111072901/unet_shadow_20241111072901_e200.pth")
     output = remover.process_image(image)
     # Save or display the result
-    cv2.imwrite('../unet/merged_image.jpg', output)
+    cv2.imwrite(f'../unet/merged_image_{datetime.now().strftime("%Y%m%d%H%M%S")}.jpg', output)
     cv2.imshow('Merged Image', output)
     cv2.waitKey(0)
     cv2.destroyAllWindows()

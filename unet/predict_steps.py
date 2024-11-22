@@ -1,4 +1,6 @@
 import glob
+
+import cv2
 from PIL import Image
 import config
 import matplotlib.pyplot as plt
@@ -30,7 +32,7 @@ def prepare_plot(origImage, origMask, predMask):
     plt.close()
 
 
-def make_predictions(model, path_t, path_gt):
+def make_predictions(model, path_t, path_gt, iteration=0):
     # set model to evaluation mode
     model.eval()
     # turn off gradient tracking
@@ -72,6 +74,7 @@ def make_predictions(model, path_t, path_gt):
 
         # prepare a plot for visualization
         prepare_plot(og_image, gtMask, predMask)
+        cv2.imwrite(f'./prediction_path/image_{iteration}.jpg', cv2.cvtColor(predMask * 255, cv2.COLOR_RGB2BGR))
 
 
 if __name__ == '__main__':
@@ -87,21 +90,20 @@ if __name__ == '__main__':
 
     # load our model from disk and flash it to the current device
     print("[INFO] load up model...")
-    # model = glob.glob("output/output_20240930215622/unet_shadow_20240930215622.pth")
-    # model = glob.glob("output/output_20240630001817/unet_shadow_20240630001817_e100.pth")
-    # model = glob.glob("output/output_20240929220403/unet_shadow_20240929220403_e25.pth")
-    # model = glob.glob("output/output_20240930225008/unet_shadow_20240930225008_e30.pth")
-    # model = glob.glob("output/output_20241001074431/unet_shadow_20241001074431_e50.pth")
-    # model = glob.glob("output/output_20241001231452/unet_shadow_20241001231452_e200.pth")
-    # model = glob.glob("output/output_20241002213808/unet_shadow_20241002213808_e30.pth")
     # iterate over the randomly selected test image paths
-    for epoch in range(5, 126, 5):
+    for epoch in range(5, 91, 5):
         print("test " + str(epoch))
-        # model = glob.glob(f"output/output_20241018173347/unet_shadow_20241018173347_e{epoch}.pth")
-        # model = glob.glob(f"output/output_20241019231437/unet_shadow_20241019231437_e{epoch}.pth")
-        model = glob.glob(f"output/output_20241003154040/unet_shadow_20241003154040_e{epoch}.pth")
+        model = glob.glob(f"output/output_20241108171754/unet_shadow_20241108171754_e{epoch}.pth")
         i = 0
-        unet = torch.load(model[i]) #.to(config.DEVICE)
+        unet = torch.load(model[i]).to(config.DEVICE)
 
         # make predictions and visualize the results
-        make_predictions(unet, TimagePaths[0], None)
+        make_predictions(unet, TimagePaths[0], None, epoch)
+
+    for epoch in range(95, 201, 5):
+        print("test " + str(epoch))
+        model = glob.glob(f"output/output_20241111072901/unet_shadow_20241111072901_e{epoch}.pth")
+        unet = torch.load(model[0]).to(config.DEVICE)
+
+        # make predictions and visualize the results
+        make_predictions(unet, TimagePaths[0], None, epoch)

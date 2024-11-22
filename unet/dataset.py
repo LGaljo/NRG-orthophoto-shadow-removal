@@ -2,9 +2,10 @@ import os
 import random
 
 import numpy as np
+import torch
 from PIL import Image
 from torch.utils.data import Dataset
-from torchvision.transforms.v2 import functional as F
+from torchvision.transforms.v2 import functional as F, Compose, ToImage, ToDtype
 from torchvision.transforms.v2 import ToTensor
 
 from unet import config
@@ -113,6 +114,10 @@ class ImageLoaderDataset(Dataset):
             image_train = F.rotate(image_train, angle=angle)
             image_gt = F.rotate(image_gt, angle=angle)
 
-        to_tensor = ToTensor()
+        # to_tensor = ToTensor()
+        to_tensor = Compose([
+            ToImage(),
+            ToDtype(torch.float32, scale=True)
+        ])
 
         return to_tensor(image_train), to_tensor(image_gt), image_train, image_gt

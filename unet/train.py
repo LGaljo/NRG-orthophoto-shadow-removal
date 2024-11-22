@@ -2,13 +2,12 @@
 # python train.py
 # import the necessary packages
 import os
-import random
 
-import numpy as np
+from piqa import SSIM
 
 from dataset import ImageLoaderDataset
 import config
-from torch.nn import MSELoss
+from torch.nn import MSELoss, Module
 from torch.optim import Adam, AdamW
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
@@ -19,11 +18,34 @@ import matplotlib.pyplot as plt
 import torch
 import time
 
-from tools.noise import image
 from unet.model_unet import UNet
 from unet.model_unet_smaller import UNetSmaller
 
 info_file = None
+
+
+class SSIMLoss(SSIM):
+    def forward(self, x, y):
+        return 1. - super().forward(x, y)
+
+
+class SMLoss(Module):
+    def __init__(self, alpha=0.5):
+        super(SMLoss, self).__init__()
+        self.alpha = alpha
+        self.mse_loss = MSELoss()
+        self.ssim = SSIM()
+
+    def to(self, device):
+        self.mse_loss.to(device)
+        self.ssim.to(device)
+        return self
+
+    def forward(self, x, y):
+        mse = self.mse_loss(x, y)
+        ssim_loss = 1. - self.ssim(x, y)
+        combined_loss = self.alpha * mse + (1. - self.alpha) * ssim_loss
+        return combined_loss
 
 
 def write_info():
@@ -145,10 +167,13 @@ def load_model():
 
     return unet
 
+
 def train(unet, trainLoader, evalLoader, trainSteps, evalSteps):
 
     # initialize loss function and optimizer
-    lossFunc = MSELoss().to(config.DEVICE)
+    # lossFunc = MSELoss().to(config.DEVICE)
+    # lossFunc = SSIMLoss().to(config.DEVICE)
+    lossFunc = SMLoss(0.5).to(config.DEVICE)
     optimizer = AdamW(unet.parameters(), lr=config.INIT_LR, weight_decay=config.WEIGHT_DECAY)
 
     torch.backends.cudnn.benchmark = True
@@ -159,7 +184,7 @@ def train(unet, trainLoader, evalLoader, trainSteps, evalSteps):
     # loop over epochs
     print("[INFO] training the network...")
     startTime = time.time()
-    for e in (range(config.NUM_EPOCHS)):
+    for e in range(config.START_EPOCH, config.NUM_EPOCHS):
         # set the model in training mode
         unet.train()
 

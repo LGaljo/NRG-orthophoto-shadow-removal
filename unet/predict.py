@@ -132,9 +132,13 @@ if __name__ == '__main__':
     # model = glob.glob("output/output_20241001231452/unet_shadow_20241001231452_e200.pth")
     # model = glob.glob("output/output_20241002213808/unet_shadow_20241002213808_e30.pth")
     # model = glob.glob("output/output_20241019231437/unet_shadow_20241019231437_e70.pth")
-    model = glob.glob("output/output_20241024223406/unet_shadow_20241024223406_e100.pth")
+    # model = glob.glob("output/output_20241024223406/unet_shadow_20241024223406_e100.pth")
+    # model = glob.glob("output/output_20241024223406/unet_shadow_20241024223406_e40.pth")
+    # model = glob.glob("output/output_20241111072901/unet_shadow_20241111072901_e200.pth")
+    # model = glob.glob("output/output_20241120173728/unet_shadow_20241120173728.pth")
+    model = glob.glob("output/output_20241120220442/unet_shadow_20241120220442.pth")
     i = 0
-    unet = torch.load(model[i])#.to(config.DEVICE)
+    unet = torch.load(model[i]).to(config.DEVICE)
 
     # iterate over the randomly selected test image paths
     for (t_path, gt_path) in zip(TimagePaths, GTimagePaths):
