@@ -80,8 +80,8 @@ def make_predictions(model, path_t, path_gt):
 
 
 if __name__ == '__main__':
-    TimagePaths = glob.glob(os.path.join(config.TESTSET_PATH, "train_A", "*.png"))
-    GTimagePaths = glob.glob(os.path.join(config.TESTSET_PATH, "train_C", "*.png"))
+    TimagePaths = glob.glob(os.path.join(config.TESTSET_T_PATH))
+    GTimagePaths = glob.glob(os.path.join(config.TESTSET_GT_PATH))
 
     # load the image paths in our testing file and randomly select 10
     # image paths
@@ -136,7 +136,16 @@ if __name__ == '__main__':
     # model = glob.glob("output/output_20241024223406/unet_shadow_20241024223406_e40.pth")
     # model = glob.glob("output/output_20241111072901/unet_shadow_20241111072901_e200.pth")
     # model = glob.glob("output/output_20241120173728/unet_shadow_20241120173728.pth")
-    model = glob.glob("output/output_20241120220442/unet_shadow_20241120220442.pth")
+    # model = glob.glob("output/output_20241120220442/unet_shadow_20241120220442.pth")
+    # model = glob.glob("output/output_20241121220913/unet_shadow_20241121220913_e20.pth")
+    # model = glob.glob("output/unet_shadow_20241122083203_e100.pth")
+    # model = glob.glob("output/output_20241122083203/unet_shadow_20241122083203_e200.pth")
+    # model = glob.glob("output/output_20241209223619/unet_shadow_20241209223619.pth")
+    # model = glob.glob("output/output_20241210193215/unet_shadow_20241210193215.pth")
+    # model = glob.glob("output/output_20241210210910/unet_shadow_20241210210910.pth")
+    # model = glob.glob("output/output_20241211182133/unet_shadow_20241211182133_e10.pth")
+    # model = glob.glob("output/output_20241211224201/unet_shadow_20241211224201_e80.pth")
+    model = glob.glob("output/output_20241213175748/unet_shadow_20241213175748_e100.pth")
     i = 0
     unet = torch.load(model[i]).to(config.DEVICE)
 

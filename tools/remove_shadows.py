@@ -68,8 +68,10 @@ if __name__ == '__main__':
     # remover = RemoveShadows("../unet/output/output_20241003154040/unet_shadow_20241003154040_e95.pth")
     # remover = RemoveShadows("../unet/output/output_20241003154040/unet_shadow_20241003154040_e115.pth")
     # remover = RemoveShadows("../unet/output/output_20241019231437/unet_shadow_20241019231437_e70.pth")
-    remover = RemoveShadows("../unet/output/output_20241108171754/unet_shadow_20241108171754_e25.pth")
+    # remover = RemoveShadows("../unet/output/output_20241108171754/unet_shadow_20241108171754_e25.pth")
     # remover = RemoveShadows("../unet/output/output_20241111072901/unet_shadow_20241111072901_e200.pth")
+    # remover = RemoveShadows("../unet/output/output_20241122083203/unet_shadow_20241122083203_e200.pth")
+    remover = RemoveShadows("../unet/output/output_20241209223619/unet_shadow_20241209223619.pth")
     output = remover.process_image(image)
     # Save or display the result
     cv2.imwrite(f'../unet/merged_image_{datetime.now().strftime("%Y%m%d%H%M%S")}.jpg', output)

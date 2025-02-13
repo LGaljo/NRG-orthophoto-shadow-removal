@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import torch
 import time
 
+from unet.ShadowPresenceLoss import SPLoss
 from unet.model_unet import UNet
 from unet.model_unet_smaller import UNetSmaller
 
@@ -29,22 +30,25 @@ class SSIMLoss(SSIM):
         return 1. - super().forward(x, y)
 
 
-class SMLoss(Module):
-    def __init__(self, alpha=0.5):
-        super(SMLoss, self).__init__()
+class Loss(Module):
+    def __init__(self, alpha=0.5, ):
+        super(Loss, self).__init__()
         self.alpha = alpha
+        self.sp_loss = SPLoss()
         self.mse_loss = MSELoss()
-        self.ssim = SSIM()
+        # self.ssim = SSIM()
 
     def to(self, device):
         self.mse_loss.to(device)
-        self.ssim.to(device)
+        # self.ssim.to(device)
+        self.sp_loss.to(device)
         return self
 
     def forward(self, x, y):
         mse = self.mse_loss(x, y)
-        ssim_loss = 1. - self.ssim(x, y)
-        combined_loss = self.alpha * mse + (1. - self.alpha) * ssim_loss
+        spl = self.sp_loss(x, y)
+        # ssim_loss = 1. - self.ssim(x, y)
+        combined_loss = self.alpha * mse + (1. - self.alpha) * spl
         return combined_loss
 
 
@@ -91,8 +95,8 @@ def load_data():
 
 
     # TODO: Disable on real training
-    # train_si = train_si[1000:]
-    # train_gti = train_gti[1000:]
+    # train_si = train_si[2000:]
+    # train_gti = train_gti[2000:]
     # eval_si = eval_si[100:]
     # eval_gti = eval_gti[100:]
     # train_si = train_si[0::15]
@@ -171,9 +175,11 @@ def load_model():
 def train(unet, trainLoader, evalLoader, trainSteps, evalSteps):
 
     # initialize loss function and optimizer
-    # lossFunc = MSELoss().to(config.DEVICE)
+    lossFunc = MSELoss().to(config.DEVICE)
     # lossFunc = SSIMLoss().to(config.DEVICE)
-    lossFunc = SMLoss(0.5).to(config.DEVICE)
+    # lossFunc = SMLoss(0.5).to(config.DEVICE)
+    # lossFunc = SPLoss().to(config.DEVICE)
+    # lossFunc = Loss(0.5).to(config.DEVICE)
     optimizer = AdamW(unet.parameters(), lr=config.INIT_LR, weight_decay=config.WEIGHT_DECAY)
 
     torch.backends.cudnn.benchmark = True
@@ -199,6 +205,7 @@ def train(unet, trainLoader, evalLoader, trainSteps, evalSteps):
 
             # perform a forward pass and calculate the training loss
             prediction = unet(x)
+            # loss = lossFunc(prediction)
             loss = lossFunc(prediction, y)
 
             # first, zero out any previously accumulated gradients, then
@@ -222,6 +229,7 @@ def train(unet, trainLoader, evalLoader, trainSteps, evalSteps):
 
                 # make the predictions and calculate the validation loss
                 prediction = unet(x)
+                # totalEvalLoss += lossFunc(prediction)
                 totalEvalLoss += lossFunc(prediction, y)
 
         # calculate the average training and validation loss

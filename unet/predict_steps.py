@@ -78,8 +78,8 @@ def make_predictions(model, path_t, path_gt, iteration=0):
 
 
 if __name__ == '__main__':
-    TimagePaths = glob.glob(os.path.join(config.TESTSET_PATH, "train_A", "*.png"))
-    GTimagePaths = glob.glob(os.path.join(config.TESTSET_PATH, "train_C", "*.png"))
+    TimagePaths = glob.glob(os.path.join(config.TESTSET_T_PATH))
+    GTimagePaths = glob.glob(os.path.join(config.TESTSET_GT_PATH))
 
     # load the image paths in our testing file and randomly select 10
     # image paths
@@ -91,19 +91,11 @@ if __name__ == '__main__':
     # load our model from disk and flash it to the current device
     print("[INFO] load up model...")
     # iterate over the randomly selected test image paths
-    for epoch in range(5, 91, 5):
+    for epoch in range(5, 201, 5):
         print("test " + str(epoch))
-        model = glob.glob(f"output/output_20241108171754/unet_shadow_20241108171754_e{epoch}.pth")
+        model = glob.glob(f"output/output_20241211224201/unet_shadow_20241211224201_e{epoch}.pth")
         i = 0
         unet = torch.load(model[i]).to(config.DEVICE)
-
-        # make predictions and visualize the results
-        make_predictions(unet, TimagePaths[0], None, epoch)
-
-    for epoch in range(95, 201, 5):
-        print("test " + str(epoch))
-        model = glob.glob(f"output/output_20241111072901/unet_shadow_20241111072901_e{epoch}.pth")
-        unet = torch.load(model[0]).to(config.DEVICE)
 
         # make predictions and visualize the results
         make_predictions(unet, TimagePaths[0], None, epoch)
