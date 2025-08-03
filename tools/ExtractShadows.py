@@ -4,7 +4,9 @@ from PIL import Image, ImageChops, ImageEnhance, ImageCms
 from tqdm import tqdm
 
 # subset_path = "..\\unity_dataset\\big_trees_datasets\\full_size\\*.png"
-subset_path = "C:\\Users\\lukag\\AppData\\LocalLow\\Magistrska naloge - Luka Galjot\\Mag Generate Shadows\\*.png"
+# subset_path = "C:\\Users\\lukag\\Documents\\Projects\\Faks\\MAG\\slikovni material za magistrsko nalogo\\usos\\*.png"
+# subset_path = "C:\\Users\\lukag\\AppData\\LocalLow\\Magistrska naloge - Luka Galjot\\Mag Generate Shadows\\*.png"
+subset_path = "C:\\Users\\lukag\\Documents\\Projects\\Faks\\MAG\\ShadowRemoval\\dataset\\unity_dataset\\mixed_visibility_dataset\\test\\train_A\\*.png"
 
 """
 Split large image image into tiles.
@@ -42,8 +44,8 @@ def extract_shadow_mask_in_lab(image_path, image_path_ns, image_path_adj):
 
 
 def process_image(image_path):
-    image_path_ns = image_path.replace('Hard', 'None')
-    image_path_adj = image_path.replace('Hard', 'Mask')
+    image_path_ns = image_path.replace('Hard', 'None').replace('train_A', 'train_C')
+    image_path_adj = image_path.replace('Hard', 'Mask').replace('train_A', 'train_B')
     extract_shadow_mask_in_lab(image_path, image_path_ns, image_path_adj)
 
 
