@@ -93,9 +93,11 @@ if __name__ == '__main__':
     # iterate over the randomly selected test image paths
     for epoch in range(5, 201, 5):
         print("test " + str(epoch))
-        model = glob.glob(f"output/output_20241211224201/unet_shadow_20241211224201_e{epoch}.pth")
+        model = glob.glob(f"output/output_usos_20250801222705/unet_shadow_20250801222705_e{epoch}.pth")
+        # model = glob.glob(f"output/output_20241122083203/unet_shadow_20241122083203_e{epoch}.pth")
+        # model = glob.glob(f"output/output_usos_20250703063322/unet_shadow_20250703063322_e{epoch}.pth")
         i = 0
-        unet = torch.load(model[i]).to(config.DEVICE)
+        unet = torch.load(model[i], map_location="cuda:0").to(config.DEVICE)
 
         # make predictions and visualize the results
         make_predictions(unet, TimagePaths[0], None, epoch)

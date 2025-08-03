@@ -9,4 +9,5 @@ report
 dataset/mydataset
 *.tif
 unet/output*/*
+trained_models
 dataset
