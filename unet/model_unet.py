@@ -7,11 +7,11 @@ class Block(Module):
     def __init__(self, in_channels, out_channels):
         super(Block, self).__init__()
         self.conv = Sequential(
-            Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+            Conv2d(in_channels, out_channels, kernel_size=3, padding=1, padding_mode='reflect'),
             BatchNorm2d(out_channels),
             ReLU(inplace=True),
             Dropout(0.25),
-            Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+            Conv2d(out_channels, out_channels, kernel_size=3, padding=1, padding_mode='reflect'),
             BatchNorm2d(out_channels),
             ReLU(inplace=True),
             Dropout(0.25),
@@ -54,10 +54,10 @@ class Bottleneck(Module):
     def __init__(self, in_channels, out_channels):
         super(Bottleneck, self).__init__()
         self.bottleneck = Sequential(
-            Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+            Conv2d(in_channels, out_channels, kernel_size=3, padding=1, padding_mode='reflect'),
             BatchNorm2d(out_channels),
             ReLU(inplace=True),
-            Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+            Conv2d(out_channels, out_channels, kernel_size=3, padding=1, padding_mode='reflect'),
             BatchNorm2d(out_channels),
             ReLU(inplace=True)
         )
@@ -72,7 +72,8 @@ class AttentionBlock(Module):
         in_channels = in_channels // 2
         out_channels = out_channels // 2
         self.W_g = Sequential(
-            Conv2d(in_channels, out_channels, kernel_size=1, padding=0, stride=1),
+            Conv2d(in_channels, out_channels,
+                   kernel_size=1, padding=0, stride=1),
             BatchNorm2d(out_channels)
         )
         self.W_x = Sequential(

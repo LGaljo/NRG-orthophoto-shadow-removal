@@ -5,18 +5,20 @@ import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
-from torchvision.transforms.v2 import functional as F, Compose, ToImage, ToDtype
+from torchvision.transforms.v2 import functional as F, Compose, ToImage, ToDtype, Normalize
 from torchvision.transforms.v2 import ToTensor
 
 from unet import config
 
 
 class ImageLoaderDataset(Dataset):
-    def __init__(self, train_paths, gt_paths, transforms):
+    def __init__(self, train_paths, gt_paths, transforms, mean, std):
         # store the image and mask filepaths, and augmentation transforms
         self.train_paths = train_paths
         self.gt_paths = gt_paths
         self.transforms = transforms
+        self.mean = mean
+        self.std = std
 
     def __len__(self):
         # return the number of total samples contained in the dataset
@@ -32,8 +34,8 @@ class ImageLoaderDataset(Dataset):
 
         # Save a copy of transformed images
         if config.SAVE_TRANSFORMS:
-            image_train.save(os.path.basename(self.train_paths[idx]).split('.')[0] + "1.png")
-            image_gt.save(os.path.basename(self.gt_paths[idx]).split('.')[0] + "2.png")
+            image_train.save(os.path.basename(self.train_paths[idx]).split('.')[0] + " transform-train.png")
+            image_gt.save(os.path.basename(self.gt_paths[idx]).split('.')[0] + " transform-gt.png")
 
         # return a tuple of the image and its mask
         return image_train_tensor, image_gt_tensor
@@ -115,9 +117,17 @@ class ImageLoaderDataset(Dataset):
             image_gt = F.rotate(image_gt, angle=angle)
 
         # to_tensor = ToTensor()
+        # Create a transformation to convert images to tensors with automatic scaling [0,1]
         to_tensor = Compose([
             ToImage(),
-            ToDtype(torch.float32, scale=True)
+            ToDtype(torch.float32, scale=True),
+            Normalize(mean=self.mean, std=self.std)
         ])
 
-        return to_tensor(image_train), to_tensor(image_gt), image_train, image_gt
+        # Apply the transformation to both images
+        image_train_tensor = to_tensor(image_train)
+        image_gt_tensor = to_tensor(image_gt)
+
+
+
+        return image_train_tensor, image_gt_tensor, image_train, image_gt

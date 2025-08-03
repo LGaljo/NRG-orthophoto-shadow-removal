@@ -4,6 +4,7 @@
 import os
 
 from piqa import SSIM
+from PIL import Image
 
 from dataset import ImageLoaderDataset
 import config
@@ -30,9 +31,9 @@ class SSIMLoss(SSIM):
         return 1. - super().forward(x, y)
 
 
-class Loss(Module):
-    def __init__(self, alpha=0.5, ):
-        super(Loss, self).__init__()
+class SMLoss(Module):
+    def __init__(self, alpha=0.5):
+        super(SMLoss, self).__init__()
         self.alpha = alpha
         self.sp_loss = SPLoss()
         self.mse_loss = MSELoss()
@@ -75,7 +76,6 @@ def write_info():
     ])
     info_file.flush()
 
-
 def load_data():
     # load the image and mask filepaths in a sorted manner
     shadow_image = []
@@ -111,7 +111,7 @@ def load_data():
 
     train_transforms = [
         'RandomResizedCrop',
-        'ColorJitter',
+        # 'ColorJitter',
         'RandomHorizontalFlip'
         'RandomVerticalFlip',
         'RandomRotation',
@@ -119,7 +119,7 @@ def load_data():
 
     pretrain_transforms = transforms.Compose([
         'Resize',
-        'ColorJitter',
+        # 'ColorJitter',
         'GaussianNoise',
         'RandomHorizontalFlip'
         'RandomVerticalFlip',
@@ -127,8 +127,8 @@ def load_data():
     ])
 
     # create the train and evaluation datasets
-    trainDS = ImageLoaderDataset(train_paths=train_si, gt_paths=train_gti, transforms=train_transforms)
-    evalDS = ImageLoaderDataset(train_paths=eval_si, gt_paths=eval_gti, transforms=train_transforms)
+    trainDS = ImageLoaderDataset(train_paths=train_si, gt_paths=train_gti, transforms=train_transforms, mean=config.MEAN, std=config.STD)
+    evalDS = ImageLoaderDataset(train_paths=eval_si, gt_paths=eval_gti, transforms=train_transforms, mean=config.MEAN, std=config.STD)
     print(f"[INFO] found {len(trainDS)} examples in the training set...")
     print(f"[INFO] found {len(evalDS)} examples in the eval set...")
 
@@ -137,6 +137,8 @@ def load_data():
         f"Evaluation set transforms: {train_transforms}\n\n",
         f"Train set contains {len(trainDS)} image pairs\n\n",
         f"Evaluation set contains {len(evalDS)} image pairs\n\n",
+        f"Dataset mean: {config.MEAN}\n\n",
+        f"Dataset std: {config.STD}\n\n",
     ])
     info_file.flush()
 
@@ -179,7 +181,6 @@ def train(unet, trainLoader, evalLoader, trainSteps, evalSteps):
     # lossFunc = SSIMLoss().to(config.DEVICE)
     # lossFunc = SMLoss(0.5).to(config.DEVICE)
     # lossFunc = SPLoss().to(config.DEVICE)
-    # lossFunc = Loss(0.5).to(config.DEVICE)
     optimizer = AdamW(unet.parameters(), lr=config.INIT_LR, weight_decay=config.WEIGHT_DECAY)
 
     torch.backends.cudnn.benchmark = True
@@ -257,8 +258,11 @@ def train(unet, trainLoader, evalLoader, trainSteps, evalSteps):
 
     # display the total time needed to perform the training
     endTime = time.time()
+    print("[INFO] total time taken to train the model: {:.2f}s".format(endTime - startTime))
+    info_file.writelines(["[INFO] total time taken to train the model: {:.2f}s".format(endTime - startTime)])
+    info_file.flush()
 
-    print_results(startTime, endTime, H)
+    show_plot(H)
 
 
 def print_results(startTime, endTime, H):
