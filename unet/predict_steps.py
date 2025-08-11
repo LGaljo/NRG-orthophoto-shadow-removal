@@ -2,6 +2,8 @@ import glob
 
 import cv2
 from PIL import Image
+from torchvision.transforms.v2 import Compose, ToImage, ToDtype
+
 import config
 import matplotlib.pyplot as plt
 import numpy as np
@@ -43,9 +45,8 @@ def make_predictions(model, path_t, path_gt, iteration=0):
 
         # resize the image and make a copy of it for visualization
         image = image.resize((config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_HEIGHT))
-        image = np.array(image) / 255
-        image = image.astype(np.float32)
-        og_image = image.copy()
+        og_image = np.array(image).astype(np.float32)
+        og_image = og_image / 255
 
         # find the filename and generate the path to ground truth
         # mask
@@ -58,19 +59,21 @@ def make_predictions(model, path_t, path_gt, iteration=0):
         else:
             print('No GT image')
 
+        # Apply the same transformation pipeline as in dataset.py
+        to_tensor = Compose([
+            ToImage(),
+            ToDtype(torch.float32, scale=True),
+            # Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        ])
+
         # make the channel axis to be the leading one, add a batch
         # dimension, create a PyTorch tensor, and flash it to the
         # current device
-        image = np.transpose(image, (2, 0, 1))
-        image = np.expand_dims(image, 0)
-        image_tensor = torch.from_numpy(image).to(config.DEVICE)
+        image_tensor = to_tensor(image).unsqueeze(0).to(config.DEVICE)
 
         # make the prediction, pass the results through the sigmoid
         # function, and convert the result to a NumPy array
-        predMask = model(image_tensor).squeeze()
-        predMask = predMask.cpu().numpy()
-        predMask = np.transpose(predMask, (1, 2, 0))
-        # predMask = (predMask-np.min(predMask))/(np.max(predMask)-np.min(predMask))
+        predMask = image_tensor.squeeze(0).permute(1, 2, 0).cpu().numpy()
 
         # prepare a plot for visualization
         prepare_plot(og_image, gtMask, predMask)
@@ -93,8 +96,10 @@ if __name__ == '__main__':
     # iterate over the randomly selected test image paths
     for epoch in range(5, 201, 5):
         print("test " + str(epoch))
-        model = glob.glob(f"output/output_usos_20250801222705/unet_shadow_20250801222705_e{epoch}.pth")
+        # model = glob.glob(f"output/output_usos_20250801222705/unet_shadow_20250801222705_e{epoch}.pth")
+        # model = glob.glob(f"output/output_pretraining_20250805183113/unet_shadow_20250805183113_e{epoch}.pth")
         # model = glob.glob(f"output/output_20241122083203/unet_shadow_20241122083203_e{epoch}.pth")
+        model = glob.glob(f"output/output_pretraining_20250805193927/unet_shadow_20250805193927_e{epoch}.pth")
         # model = glob.glob(f"output/output_usos_20250703063322/unet_shadow_20250703063322_e{epoch}.pth")
         i = 0
         unet = torch.load(model[i], map_location="cuda:0").to(config.DEVICE)

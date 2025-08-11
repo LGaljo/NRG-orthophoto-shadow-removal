@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import os
+from torchvision.transforms.v2 import functional as F, Compose, ToImage, ToDtype, Normalize, PILToTensor
 
 TimagePaths = []
 GTimagePaths = []
@@ -46,13 +47,14 @@ def make_predictions(model, path_t, path_gt):
 
         # resize the image and make a copy of it for visualization
         image = image.resize((config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_HEIGHT))
-        image = np.array(image) / 255
-        image = image.astype(np.float32)
         og_image = image.copy()
+        og_image = np.array(og_image).astype(np.float32)
+        og_image = og_image / 255
+        og_image = og_image.astype(np.float32)
 
         # find the filename and generate the path to ground truth
         # mask
-        gtMask = np.ones_like(image)
+        gtMask = np.ones_like(og_image)
         if path_gt is not None:
             # load the ground-truth segmentation mask in grayscale mode
             # and resize it
@@ -61,19 +63,22 @@ def make_predictions(model, path_t, path_gt):
         else:
             print('No GT image')
 
-        # make the channel axis to be the leading one, add a batch
-        # dimension, create a PyTorch tensor, and flash it to the
-        # current device
-        image = np.transpose(image, (2, 0, 1))
-        image = np.expand_dims(image, 0)
-        image_tensor = torch.from_numpy(image).to(config.DEVICE)
+        # Apply the same transformation pipeline as in dataset.py
+        to_tensor = Compose([
+            ToImage(),
+            ToDtype(torch.float32, scale=True),
+            # Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        ])
+
+        # Apply the transformation and add batch dimension
+        image_tensor = to_tensor(image).unsqueeze(0).to("cpu")
 
         # make the prediction, pass the results through the sigmoid
         # function, and convert the result to a NumPy array
-        predMask = model(image_tensor).squeeze()
-        predMask = predMask.cpu().numpy()
-        predMask = np.transpose(predMask, (1, 2, 0))
-        # predMask = (predMask-np.min(predMask))/(np.max(predMask)-np.min(predMask))
+        predMask = model(image_tensor)
+        # Convert the tensor to numpy array and reshape it to the format expected by matplotlib
+        # Remove batch dimension and transpose from (C,H,W) to (H,W,C)
+        predMask = predMask.squeeze(0).permute(1, 2, 0).cpu().numpy()
 
         # prepare a plot for visualization
         prepare_plot(og_image, gtMask, predMask)
@@ -150,9 +155,13 @@ if __name__ == '__main__':
     # model = glob.glob("output/unet_shadow_2025072/5192114_pretraining_e10.pth")
     # model = glob.glob("output/output_20250731150744/unet_shadow_20250731150744_e100.pth")
     # model = glob.glob("output/output_usos_20250801222705/unet_shadow_20250801222705_e200.pth")
-    model = glob.glob("output/output_usos_20250802224220/unet_shadow_20250802224220_e15.pth")
+    # model = glob.glob("output/output_usos_20250802224220/unet_shadow_20250802224220_e15.pth")
+    # model = glob.glob("output/output_pretraining_20250803092013/unet_shadow_20250803092013_e50.pth")
+    # model = glob.glob("output/output_pretraining_20250805193927/unet_shadow_20250805193927_e175.pth")
+    model = glob.glob("output/unet_shadow_20250806211308_usos_e40.pth")
+    # model = glob.glob("output/unet_shadow_20250725192114_pretraining_e15.pth")
     i = 0
-    unet = torch.load(model[i]).to(config.DEVICE)
+    unet = torch.load(model[i]).to("cpu")
 
     # iterate over the randomly selected test image paths
     for (t_path, gt_path) in zip(TimagePaths, GTimagePaths):

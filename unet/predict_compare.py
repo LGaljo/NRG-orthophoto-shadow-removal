@@ -4,6 +4,7 @@ import config
 import numpy as np
 import torch
 import os
+from torchvision.transforms.v2 import functional as F, Compose, ToImage, ToDtype, Normalize
 
 TimagePaths = []
 GTimagePaths = []
@@ -21,7 +22,7 @@ DATASETS = [
     },
     {
         "name": "USOS",
-        "model_path": "output/unet_shadow_20250703063322_usos_e250.pth",
+        "model_path": "output/output_usos_20250801222705/unet_shadow_20250801222705_e200.pth",
     },
     {
         "name": "USOS2024",
@@ -53,29 +54,25 @@ def make_predictions(path_t, output_dir):
         # to float data type, and scale its pixel values
         image = Image.open(path_t).convert('RGB')
 
+        # resize the image and make a copy of it for visualization
+        image = image.resize((config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_HEIGHT))
+
+        to_tensor = Compose([
+            ToImage(),
+            ToDtype(torch.float32, scale=True),
+        ])
+        image_tensor = to_tensor(image)
+
+        # make the prediction, pass the results through the sigmoid
+        # function, and convert the result to a NumPy array
+        predMask = model(image_tensor)
+        predMask = predMask.squeeze(0).permute(1, 2, 0).cpu().numpy()
+
         # Get the image filename without extension
         img_name = os.path.splitext(os.path.basename(path_t))[0]
 
         # Create output path with model name
         output_path = os.path.join(output_dir, f"{img_name}_{model_name}.png")
-
-        # resize the image and make a copy of it for visualization
-        image = image.resize((config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_HEIGHT))
-        image = np.array(image) / 255
-        image = image.astype(np.float32)
-
-        # make the channel axis to be the leading one, add a batch
-        # dimension, create a PyTorch tensor, and flash it to the
-        # current device
-        image = np.transpose(image, (2, 0, 1))
-        image = np.expand_dims(image, 0)
-        image_tensor = torch.from_numpy(image).to(config.DEVICE)
-
-        # make the prediction, pass the results through the sigmoid
-        # function, and convert the result to a NumPy array
-        predMask = model(image_tensor).squeeze()
-        predMask = predMask.cpu().numpy()
-        predMask = np.transpose(predMask, (1, 2, 0))
 
         # Save the prediction image
         save_prediction(predMask, output_path)
@@ -84,7 +81,7 @@ def make_predictions(path_t, output_dir):
 if __name__ == '__main__':
 
     TimagePaths = glob.glob(os.path.join(config.TESTSET_T_PATH))
-    TimagePaths = np.random.choice(TimagePaths, size=10)
+    # TimagePaths = np.random.choice(TimagePaths, size=10)
 
     # load the image paths in our testing file
     print("[INFO] loading up test image paths...")
