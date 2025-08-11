@@ -7,11 +7,11 @@ class Block(Module):
     def __init__(self, in_channels, out_channels):
         super(Block, self).__init__()
         self.conv = Sequential(
-            Conv2d(in_channels, out_channels, kernel_size=3, padding=1, padding_mode='reflect'),
+            Conv2d(in_channels, out_channels, kernel_size=3, padding=1, padding_mode='replicate'),
             BatchNorm2d(out_channels),
             ReLU(inplace=True),
             Dropout(0.25),
-            Conv2d(out_channels, out_channels, kernel_size=3, padding=1, padding_mode='reflect'),
+            Conv2d(out_channels, out_channels, kernel_size=3, padding=1, padding_mode='replicate'),
             BatchNorm2d(out_channels),
             ReLU(inplace=True),
             Dropout(0.25),
@@ -54,10 +54,10 @@ class Bottleneck(Module):
     def __init__(self, in_channels, out_channels):
         super(Bottleneck, self).__init__()
         self.bottleneck = Sequential(
-            Conv2d(in_channels, out_channels, kernel_size=3, padding=1, padding_mode='reflect'),
+            Conv2d(in_channels, out_channels, kernel_size=3, padding=1, padding_mode='replicate'),
             BatchNorm2d(out_channels),
             ReLU(inplace=True),
-            Conv2d(out_channels, out_channels, kernel_size=3, padding=1, padding_mode='reflect'),
+            Conv2d(out_channels, out_channels, kernel_size=3, padding=1, padding_mode='replicate'),
             BatchNorm2d(out_channels),
             ReLU(inplace=True)
         )

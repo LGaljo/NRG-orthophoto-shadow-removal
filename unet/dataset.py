@@ -128,6 +128,4 @@ class ImageLoaderDataset(Dataset):
         image_train_tensor = to_tensor(image_train)
         image_gt_tensor = to_tensor(image_gt)
 
-
-
         return image_train_tensor, image_gt_tensor, image_train, image_gt

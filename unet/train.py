@@ -161,7 +161,7 @@ def load_model():
     # unet = UNetSmaller()
 
     if config.LOAD_MODEL is not None:
-        unet = torch.load(config.LOAD_MODEL)
+        unet = torch.load(config.LOAD_MODEL, weights_only=False)
 
         if config.FINE_TUNE:
             # Freeze encoder layers

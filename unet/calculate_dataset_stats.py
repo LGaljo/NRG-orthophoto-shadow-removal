@@ -36,8 +36,8 @@ def calculate_stats(image_paths):
         num_pixels += img_tensor.shape[1] * img_tensor.shape[2]
 
         # Process only a subset of images for efficiency if dataset is large
-        if i > 500:  # Adjust this number based on your dataset size
-            break
+        # if i > 500:  # Adjust this number based on your dataset size
+        #     break
 
     # Calculate mean and std
     mean = pixel_sum / num_pixels

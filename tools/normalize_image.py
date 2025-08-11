@@ -10,7 +10,7 @@ import torch
 from torchvision.transforms.v2 import functional as F, Compose, ToImage, ToDtype
 
 # Define the image path
-IMAGE_PATH = "dataset/unity_dataset/mixed_visibility_dataset_320/train/train_A/DOF5-20240602-D0717_shadowClear_12e28f16b79320f8-x255-z255-Hard-39.png"
+IMAGE_PATH = "../dataset/unity_dataset/mixed_visibility_dataset_320/train/train_A/DOF5-20240602-D0717_shadowClear_12e28f16b79320f8-x255-z255-Hard-39.png"
 
 # Define image dimensions (from config.py)
 INPUT_IMAGE_HEIGHT = 256

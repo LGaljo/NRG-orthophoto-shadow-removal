@@ -20,6 +20,8 @@ TESTSET_GT_PATH = os.path.join("..", "dataset", "SRD", "SRD_Test", "SRD", "shado
 # STD=[0.229, 0.224, 0.225] # ImageNet dataset
 MEAN=[0.4880, 0.4950, 0.3880] # USOS dataset
 STD=[0.3099, 0.2588, 0.2466] # USOS dataset
+# MEAN=[0.3690, 0.4038, 0.3678] # pretraining dataset
+# STD=[0.1869, 0.1622, 0.1470] # pretraining dataset
 
 # define the path to the shadow images and shadowless images dataset
 # IMAGE_DATASET_PATH = os.path.join(DATASET_PATH, "shadow")
