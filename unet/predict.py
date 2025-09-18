@@ -36,52 +36,50 @@ def prepare_plot(origImage, origMask, predMask):
     plt.close()
 
 
-def make_predictions(model, path_t, path_gt):
+def predict(model, image_path):
     # set model to evaluation mode
     model.eval()
     # turn off gradient tracking
     with torch.no_grad():
         # load the image from disk, swap its color channels, cast it
         # to float data type, and scale its pixel values
-        image = Image.open(path_t).convert('RGB')
-
-        # resize the image and make a copy of it for visualization
+        image = Image.open(image_path).convert('RGB')
         image = image.resize((config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_HEIGHT))
-        og_image = image.copy()
-        og_image = np.array(og_image).astype(np.float32)
-        og_image = og_image / 255
-        og_image = og_image.astype(np.float32)
-
-        # find the filename and generate the path to ground truth
-        # mask
-        gtMask = np.ones_like(og_image)
-        if path_gt is not None:
-            # load the ground-truth segmentation mask in grayscale mode
-            # and resize it
-            gtMask = Image.open(path_gt)
-            gtMask = gtMask.resize((config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_HEIGHT))
-        else:
-            print('No GT image')
 
         # Apply the same transformation pipeline as in dataset.py
         to_tensor = Compose([
             ToImage(),
             ToDtype(torch.float32, scale=True),
-            # Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+            # Normalize(mean=config.MEAN, std=config.STD),
         ])
 
-        # Apply the transformation and add batch dimension
-        image_tensor = to_tensor(image).unsqueeze(0).to("cpu")
+        # make the channel axis to be the leading one, add a batch
+        # dimension, create a PyTorch tensor, and flash it to the
+        # current device
+        image_tensor = to_tensor(image).unsqueeze(0).to(config.DEVICE)
+        prediction = model(image_tensor).squeeze().cpu().permute(1, 2, 0).numpy()
 
-        # make the prediction, pass the results through the sigmoid
-        # function, and convert the result to a NumPy array
-        predMask = model(image_tensor)
-        # Convert the tensor to numpy array and reshape it to the format expected by matplotlib
-        # Remove batch dimension and transpose from (C,H,W) to (H,W,C)
-        predMask = predMask.squeeze(0).permute(1, 2, 0).cpu().numpy()
+        return prediction
 
-        # prepare a plot for visualization
-        prepare_plot(og_image, gtMask, predMask)
+
+def make_predictions(model, path_t, path_gt):
+    prediction = predict(model, path_t)
+
+    image = Image.open(path_t).convert('RGB')
+    image = image.resize((config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_HEIGHT))
+
+    # find the filename and generate the path to ground truth mask
+    ground_truth = np.ones_like(image)
+    if path_gt is not None:
+        # load the ground-truth segmentation mask in grayscale mode
+        # and resize it
+        ground_truth = Image.open(path_gt)
+        ground_truth = ground_truth.resize((config.INPUT_IMAGE_HEIGHT, config.INPUT_IMAGE_HEIGHT))
+    else:
+        print('No GT image')
+
+    # prepare a plot for visualization
+    prepare_plot(image, ground_truth, prediction)
 
 
 if __name__ == '__main__':
@@ -96,36 +94,37 @@ if __name__ == '__main__':
     # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-27.png")
     # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-74.png")
     # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-B0830-278.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-27.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-74.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-B0830-278.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-209.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-269.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0738-66.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0738-123.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-E0504-81.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-E0504-240.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-E0637-251.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-E0644-86.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-E0644-129.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240620-D0722-239.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240623-B0108-210.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240623-E0835-238.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240623-I0901-113.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240624-D0223-258.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-E0515-219.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-D0332-289.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-D0449-181.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-D0529-22.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-D0529-230.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-E0211-26.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-E0211-283.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-J0824-63.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-K0910-61.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-K1111-182.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-K1111-366.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-27.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-74.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-B0830-278.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-209.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-269.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0738-66.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0738-123.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-E0504-81.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-E0504-240.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-E0637-251.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-E0644-86.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-E0644-129.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240620-D0722-239.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240623-B0108-210.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240623-E0835-238.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240623-I0901-113.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240624-D0223-258.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-E0515-219.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-D0332-289.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-D0449-181.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-D0529-22.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-D0529-230.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-E0211-26.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-E0211-283.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-J0824-63.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-K0910-61.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-K1111-182.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240920-K1111-366.png")
     TimagePaths = np.append(TimagePaths, "../dataset/unity_dataset/mixed_visibility_dataset_320/train/train_A/DOF5-20240602-D0717_shadowClear_12e28f16b79320f8-x255-z255-Hard-39.png")
     TimagePaths = np.append(TimagePaths, "../dataset/unity_dataset/mixed_visibility_dataset_320/train/train_A/DOF5-20240602-D0717_shadowClear_63b003c5119215b3-x255-z195-Hard-2.png")
+    TimagePaths = np.append(TimagePaths, "../dataset/unity_dataset/mixed_visibility_dataset_320/test/train_A/DOF5-20240620-D0722_shadowClear_e20c040c821fef9e-x255-z255-Hard-28.png")
 
     # load our model from disk and flash it to the current device
     print("[INFO] load up model...")
@@ -158,10 +157,21 @@ if __name__ == '__main__':
     # model = glob.glob("output/output_usos_20250802224220/unet_shadow_20250802224220_e15.pth")
     # model = glob.glob("output/output_pretraining_20250803092013/unet_shadow_20250803092013_e50.pth")
     # model = glob.glob("output/output_pretraining_20250805193927/unet_shadow_20250805193927_e175.pth")
-    model = glob.glob("output/unet_shadow_20250806211308_usos_e40.pth")
+    # model = glob.glob("output/output_pretraining_20250811165205/unet_shadow_20250811165205.pth")
+    # model = glob.glob("output/unet_shadow_20250806211308_usos_e40.pth")
     # model = glob.glob("output/unet_shadow_20250725192114_pretraining_e15.pth")
+    # model = glob.glob("output/unet_shadow_20250811152315_e30.pth")
+    # model = glob.glob("output/unet_shadow_20250626223044_istd_e500.pth")
+    model = glob.glob("output/unet_shadow_20250629075948_srd_e500.pth")
+    # model = glob.glob("output/output_pretraining_20250901222915/unet_shadow_20250901222915_e40.pth")
+    # model = glob.glob("output/output_pretraining_20250902193310/unet_shadow_20250902193310_e105.pth")
+    # model = glob.glob("output/output_usos_20250903225233/unet_shadow_20250903225233_e25.pth")
+    # model = glob.glob("output/output_usos_20250905181321/unet_shadow_20250905181321.pth")
+    # model = glob.glob("output/output_usos_20250905233425/unet_shadow_20250905233425.pth")
+    # model = glob.glob("output/output_usos_20250906081803/unet_shadow_20250906081803_e165.pth")
+    # model = glob.glob("output/output_usos_20250905233425/unet_shadow_20250905233425_e65.pth")
     i = 0
-    unet = torch.load(model[i]).to("cpu")
+    unet = torch.load(model[i], weights_only=False).to(config.DEVICE)
 
     # iterate over the randomly selected test image paths
     for (t_path, gt_path) in zip(TimagePaths, GTimagePaths):

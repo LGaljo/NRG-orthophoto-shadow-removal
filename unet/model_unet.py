@@ -10,11 +10,11 @@ class Block(Module):
             Conv2d(in_channels, out_channels, kernel_size=3, padding=1, padding_mode='replicate'),
             BatchNorm2d(out_channels),
             ReLU(inplace=True),
-            Dropout(0.25),
+            Dropout(config.DROPOUT),
             Conv2d(out_channels, out_channels, kernel_size=3, padding=1, padding_mode='replicate'),
             BatchNorm2d(out_channels),
             ReLU(inplace=True),
-            Dropout(0.25),
+            Dropout(config.DROPOUT),
         )
 
     def forward(self, x):
