@@ -76,6 +76,7 @@ def write_info():
         f"Epochs: {config.NUM_EPOCHS}\n\n",
         f"LR: {config.INIT_LR}\n\n",
         f"Weight decay: {config.WEIGHT_DECAY}\n\n",
+        f"Loss function: {config.LOSS_FUNCTION}\n\n",
         f"Optimizer: Adam with weight decay\n\n",
         f"Dropout: {config.DROPOUT}\n\n",
         f"Image input size: {config.INPUT_IMAGE_WIDTH}x{config.INPUT_IMAGE_HEIGHT}\n\n",
