@@ -36,7 +36,7 @@ def split_dataset(source_dir, dest_dir, percentage=0.25, seed=42):
         seed (int): Random seed for reproducibility
     """
     # Set random seed for reproducibility
-    random.seed(seed)
+    # random.seed(seed)
     
     # Convert paths to Path objects for better cross-platform compatibility
     source_path = Path(source_dir)
@@ -94,16 +94,12 @@ def split_dataset(source_dir, dest_dir, percentage=0.25, seed=42):
     print(f"\nDataset split complete. {percentage*100:.1f}% of the original dataset copied to {dest_dir}")
 
 
-def main():
+if __name__ == "__main__":
     # Hardcoded values
-    source_dir = "..\\dataset\\unity_dataset\\mixed_visibility_dataset\\train"
-    dest_dir = "..\\dataset\\unity_dataset\\mixed_visibility_dataset\\train_small"
-    percentage = 0.25
+    source_dir = "..\\dataset\\unity_dataset\\usos\\train"
+    dest_dir = "..\\dataset\\unity_dataset\\usos_xs\\train"
+    percentage = 0.01
     seed = 42
     
     # Call the split_dataset function with hardcoded values
     split_dataset(source_dir, dest_dir, percentage, seed)
-
-
-if __name__ == "__main__":
-    main()

@@ -105,8 +105,9 @@ if __name__ == '__main__':
         # model = glob.glob(f"output/output_pretraining_20250805183113/unet_shadow_20250805183113_e{epoch}.pth")
         # model = glob.glob(f"output/output_20241122083203/unet_shadow_20241122083203_e{epoch}.pth")
         # model = glob.glob(f"output/output_pretraining_20250805193927/unet_shadow_20250805193927_e{epoch}.pth")
-        model = glob.glob(f"output/output_usos_20250906081803/unet_shadow_20250906081803_e{epoch}.pth")
+        # model = glob.glob(f"output/output_usos_20250906081803/unet_shadow_20250906081803_e{epoch}.pth")
         # model = glob.glob(f"output/output_usos_20250703063322/unet_shadow_20250703063322_e{epoch}.pth")
+        model = glob.glob(f'output/output_usos_20250921214439/unet_shadow_20250921214439_e{epoch}.pth')  # usos s l1ssim
         i = 0
         unet = torch.load(model[i], map_location=config.DEVICE).to(config.DEVICE)
 

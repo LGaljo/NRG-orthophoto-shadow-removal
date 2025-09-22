@@ -57,4 +57,5 @@ if __name__ == '__main__':
     for image_dir in config.GT_DATASET_PATHS:
         gt_image.extend(sorted(list(paths.list_images(image_dir))))
 
-    calculate_stats([*shadow_image, *gt_image])
+    calculate_stats(shadow_image)
+    calculate_stats(gt_image)

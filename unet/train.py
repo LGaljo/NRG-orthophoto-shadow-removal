@@ -32,26 +32,40 @@ class SSIMLoss(SSIM):
         return 1. - super().forward(x, y)
 
 
-class SMLoss(Module):
+class MSESSIMLoss(Module):
     def __init__(self, alpha=0.5):
-        super(SMLoss, self).__init__()
+        super(MSESSIMLoss, self).__init__()
         self.alpha = alpha
-        self.sp_loss = SPLoss()
-        self.mse_loss = MSELoss()
-        # self.ssim = SSIM()
+        self.mse = MSELoss()
+        self.ssim = SSIMLoss()
 
     def to(self, device):
-        self.mse_loss.to(device)
-        # self.ssim.to(device)
-        self.sp_loss.to(device)
+        self.mse.to(device)
+        self.ssim.to(device)
         return self
 
     def forward(self, x, y):
-        mse = self.mse_loss(x, y)
-        spl = self.sp_loss(x, y)
-        # ssim_loss = 1. - self.ssim(x, y)
-        combined_loss = self.alpha * mse + (1. - self.alpha) * spl
-        return combined_loss
+        mse = self.mse(x, y)
+        ssim_loss = self.ssim(x, y)
+        return self.alpha * mse + (1. - self.alpha) * ssim_loss
+
+
+class L1SSIMLoss(Module):
+    def __init__(self, alpha=0.5):
+        super(L1SSIMLoss, self).__init__()
+        self.alpha = alpha
+        self.l1 = L1Loss()
+        self.ssim = SSIMLoss()
+
+    def to(self, device):
+        self.l1.to(device)
+        self.ssim.to(device)
+        return self
+
+    def forward(self, x, y):
+        l1 = self.l1(x, y)
+        ssim = self.ssim(x, y)
+        return self.alpha * l1 + (1. - self.alpha) * ssim
 
 
 def write_info():
@@ -160,8 +174,10 @@ def train(model, train_loader, eval_loader, train_steps, eval_steps):
         loss_func = MSELoss().to(config.DEVICE)
     elif config.LOSS_FUNCTION == "SSIM":
         loss_func = SSIMLoss().to(config.DEVICE)
-    elif config.LOSS_FUNCTION == "SML":
-        loss_func = SMLoss(0.5).to(config.DEVICE)
+    elif config.LOSS_FUNCTION == "MSE_SSIM":
+        loss_func = MSESSIMLoss(0.5).to(config.DEVICE)
+    elif config.LOSS_FUNCTION == "L1_SSIM":
+        loss_func = L1SSIMLoss(0.5).to(config.DEVICE)
     elif config.LOSS_FUNCTION == "SP":
         loss_func = SPLoss().to(config.DEVICE)
     elif config.LOSS_FUNCTION == "L1":
