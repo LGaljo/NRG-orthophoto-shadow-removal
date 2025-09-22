@@ -1,5 +1,6 @@
 # USAGE
 # python train.py
+import math
 import os
 
 from piqa import SSIM
@@ -92,6 +93,20 @@ def write_info():
     info_file.flush()
 
 
+def get_scheduler(optimizer, train_steps, num_epochs, warmup_steps=1000, min_lr=1e-6):
+    total_steps = train_steps * num_epochs
+
+    def lr_lambda(current_step):
+        if current_step < warmup_steps:
+            # Linear warmup
+            return float(current_step) / float(max(1, warmup_steps))
+        # Cosine decay
+        progress = float(current_step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+        return max(min_lr / config.INIT_LR, 0.5 * (1.0 + math.cos(math.pi * progress)))
+
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+
+
 def load_data():
     # load the image and mask filepaths in a sorted manner
     shadow_image = []
@@ -138,8 +153,8 @@ def load_data():
     info_file.flush()
 
     # create the training and eval data loaders
-    train_loader = DataLoader(train_ds, shuffle=False, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY)
-    eval_loader = DataLoader(eval_ds, shuffle=False, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY)
+    train_loader = DataLoader(train_ds, shuffle=True, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY)
+    eval_loader = DataLoader(eval_ds, shuffle=True, batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY)
 
     # calculate steps per epoch for training and eval set
     train_steps = len(train_ds) // config.BATCH_SIZE
@@ -186,6 +201,7 @@ def train(model, train_loader, eval_loader, train_steps, eval_steps):
     else:
         raise Exception("Unknown loss function")
     optimizer = AdamW(model.parameters(), lr=config.INIT_LR, weight_decay=config.WEIGHT_DECAY)
+    scheduler = get_scheduler(optimizer, train_steps, config.NUM_EPOCHS, warmup_steps=1000, min_lr=1e-6)
 
     torch.backends.cudnn.benchmark = True
 
@@ -218,9 +234,10 @@ def train(model, train_loader, eval_loader, train_steps, eval_steps):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            scheduler.step()
 
             # add the loss to the total training loss so far
-            total_train_loss += loss
+            total_train_loss += loss.item()
 
         # switch off autograd
         with torch.no_grad():
@@ -235,23 +252,27 @@ def train(model, train_loader, eval_loader, train_steps, eval_steps):
                 # make the predictions and calculate the validation loss
                 prediction = model(x)
                 # totalEvalLoss += lossFunc(prediction)
-                total_eval_loss += loss_func(prediction, y)
+                total_eval_loss += loss_func(prediction, y).item()
 
         # calculate the average training and validation loss
         avg_train_loss = total_train_loss / train_steps
         avg_eval_loss = total_eval_loss / eval_steps
 
         # update our training history
-        history["train_loss"].append(avg_train_loss.cpu().detach().numpy())
-        history["eval_loss"].append(avg_eval_loss.cpu().detach().numpy())
+        history["train_loss"].append(avg_train_loss)
+        history["eval_loss"].append(avg_eval_loss)
 
         # print the model training and validation information
         print(f"[INFO] EPOCH: {e + 1}/{config.NUM_EPOCHS}")
-        print("Train loss: {:.6f}, Eval loss: {:.4f}".format(avg_train_loss, avg_eval_loss))
+        print(f"[INFO] Train loss: {avg_train_loss:.6f}, Eval loss: {avg_eval_loss:.4f}")
+
+        current_lr = scheduler.get_last_lr()[0]
+        print(f"[INFO] Current LR: {current_lr:.6e}")
 
         info_file.writelines([
             f"[INFO] EPOCH: {e + 1}/{config.NUM_EPOCHS}\n",
-            "Train loss: {:.6f}, Eval loss: {:.4f}\n".format(avg_train_loss, avg_eval_loss),
+            f"[INFO] Train loss: {avg_train_loss:.6f}, Eval loss: {avg_eval_loss:.4f}",
+            f"[INFO] Current LR: {current_lr:.6e}"
         ])
         info_file.flush()
 
