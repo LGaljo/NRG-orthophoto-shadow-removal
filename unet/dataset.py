@@ -121,7 +121,7 @@ class ImageLoaderDataset(Dataset):
         to_tensor = Compose([
             ToImage(),
             ToDtype(torch.float32, scale=True),
-            Normalize(mean=self.mean, std=self.std)
+            # Normalize(mean=self.mean, std=self.std)
         ])
 
         # Apply the transformation to both images

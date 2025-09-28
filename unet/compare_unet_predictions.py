@@ -10,28 +10,32 @@ import torch
 from skimage.metrics import structural_similarity as ssim
 from skimage.metrics import peak_signal_noise_ratio as psnr
 from skimage.metrics import mean_squared_error as mse
+import lpips
 
 import config
+
+loss_fn_alex = lpips.LPIPS(net='alex').to(config.DEVICE) # best forward scores
 
 # Define datasets and their corresponding model checkpoints
 DATASETS = [
     {
         "name": "ISTD",
-        "model_path": "output/unet_shadow_20250626223044_istd_e500.pth",
-        "test_shadow_path": "trained_models/training/unet/output_20250512224855_istd/test_dataset/shadow",
-        "test_shadow_free_path": "trained_models/training/unet/output_20250512224855_istd/test_dataset/shadow_free"
+        "model_path": "output/output_istd_20250925214442/unet_shadow_20250925214442_e100.pth",
+        "test_shadow_path": "../dataset/ISTD_Dataset/test/test_A",
+        "test_shadow_free_path": "../dataset/ISTD_Dataset/test/test_C"
     },
     {
         "name": "SRD",
-        "model_path": "output/unet_shadow_20250629075948_srd_e500.pth",
-        "test_shadow_path": "trained_models/training/unet/output_20250515195624_srd/test_dataset/shadow",
-        "test_shadow_free_path": "trained_models/training/unet/output_20250515195624_srd/test_dataset/shadow_free"
+        "model_path": "output/output_srd_20250926072011/unet_shadow_20250926072011_e100.pth",
+        "test_shadow_path": "../dataset/SRD/SRD_Test/SRD/shadow",
+        "test_shadow_free_path": "../dataset/SRD/SRD_Test/SRD/shadow_free"
     },
     {
         "name": "USOS",
-        "model_path": "output/unet_shadow_20250703063322_usos_e240.pth",
-        "test_shadow_path": "../dataset/unity_dataset/mixed_visibility_dataset/train/train_A",
-        "test_shadow_free_path": "../dataset/unity_dataset/mixed_visibility_dataset/train/train_C"
+        # "model_path": "output/output_usos_20250906081803/unet_shadow_20250906081803_e165.pth",
+        "model_path": "output/output_usos_20250923063528/unet_shadow_20250923063528_e75.pth",
+        "test_shadow_path": "../dataset/unity_dataset/mixed_visibility_dataset_320/test/train_A",
+        "test_shadow_free_path": "../dataset/unity_dataset/mixed_visibility_dataset_320/test/train_C"
     },
     # Add more datasets here as needed
 ]
@@ -63,13 +67,17 @@ def prepare_plot(origImage, gtImage, predMask, title=None):
 
 def calculate_metrics(gt_image, pred_image):
     """
-    Calculate SSIM, PSNR, and RMSE metrics between ground truth and predicted images
+    Calculate SSIM, PSNR, RMSE, LPIPS metrics between ground truth and predicted images
     """
     # Convert images to numpy arrays if they're not already
     if isinstance(gt_image, torch.Tensor):
         gt_image = gt_image.cpu().numpy()
     if isinstance(pred_image, torch.Tensor):
         pred_image = pred_image.cpu().numpy()
+
+    # Ensure inputs are in [0,1]
+    gt_image = np.clip(gt_image, 0.0, 1.0)
+    pred_image = np.clip(pred_image, 0.0, 1.0)
 
     # Calculate SSIM
     ssim_value = ssim(gt_image, pred_image, data_range=1.0, multichannel=True, channel_axis=2)
@@ -81,7 +89,15 @@ def calculate_metrics(gt_image, pred_image):
     mse_value = mse(gt_image, pred_image)
     rmse_value = np.sqrt(mse_value)
 
-    return ssim_value, psnr_value, rmse_value
+    # Calculate LPIPS: expects tensors in [-1, 1]
+    gt_t = torch.from_numpy(gt_image).permute(2, 0, 1).unsqueeze(0).float()
+    pred_t = torch.from_numpy(pred_image).permute(2, 0, 1).unsqueeze(0).float()
+    gt_t = gt_t * 2.0 - 1.0
+    pred_t = pred_t * 2.0 - 1.0
+    with torch.no_grad():
+        lpips_value = loss_fn_alex(gt_t.to(config.DEVICE), pred_t.to(config.DEVICE)).item()
+
+    return ssim_value, psnr_value, rmse_value, lpips_value
 
 def make_predictions(model, path_t, path_gt):
     """
@@ -141,7 +157,7 @@ def compare_datasets():
         # Load the model
         model_path = dataset["model_path"]
         print(f"Loading model from: {model_path}")
-        model = torch.load(model_path, map_location=config.DEVICE).to(config.DEVICE)
+        model = torch.load(model_path, map_location=config.DEVICE, weights_only=False).to(config.DEVICE)
 
         # Get test images
         shadow_images = glob.glob(os.path.join(dataset["test_shadow_path"], "*.jpg")) + \
@@ -165,6 +181,7 @@ def compare_datasets():
         dataset_ssim = []
         dataset_psnr = []
         dataset_rmse = []
+        dataset_lpips = []
 
         # Process a subset of images (up to 10) for visualization
         vis_count = min(10, num_images)
@@ -179,10 +196,11 @@ def compare_datasets():
             orig_image, gt_image, pred_image = make_predictions(model, shadow_path, shadow_free_path)
 
             # Calculate metrics
-            ssim_value, psnr_value, rmse_value = calculate_metrics(gt_image, pred_image)
+            ssim_value, psnr_value, rmse_value, lpips_value = calculate_metrics(gt_image, pred_image)
             dataset_ssim.append(ssim_value)
             dataset_psnr.append(psnr_value)
             dataset_rmse.append(rmse_value)
+            dataset_lpips.append(lpips_value)
 
             # Save visualization for a subset of images
             if i < vis_count:
@@ -197,7 +215,7 @@ def compare_datasets():
 
                 ax[0].set_title("Shadowed")
                 ax[1].set_title("Ground Truth")
-                ax[2].set_title(f"Prediction (SSIM: {ssim_value:.4f}, PSNR: {psnr_value:.2f}, RMSE: {rmse_value:.4f})")
+                ax[2].set_title(f"Prediction (SSIM: {ssim_value:.4f}, PSNR: {psnr_value:.2f}, RMSE: {rmse_value:.4f}, LPIPS: {lpips_value:.4f})")
 
                 for a in ax:
                     a.axis('off')
@@ -211,18 +229,21 @@ def compare_datasets():
         avg_ssim = np.mean(dataset_ssim)
         avg_psnr = np.mean(dataset_psnr)
         avg_rmse = np.mean(dataset_rmse)
+        avg_lpips = np.mean(dataset_lpips)
 
         print(f"Dataset: {dataset['name']}")
         print(f"Average SSIM: {avg_ssim:.4f}")
         print(f"Average PSNR: {avg_psnr:.2f}")
         print(f"Average RMSE: {avg_rmse:.4f}")
+        print(f"Average LPIPS: {avg_lpips:.4f}")
         print("-" * 50)
 
         # Store metrics
         metrics[dataset['name']] = {
             "ssim": avg_ssim,
             "psnr": avg_psnr,
-            "rmse": avg_rmse
+            "rmse": avg_rmse,
+            "lpips": avg_lpips
         }
 
     # Create comparison bar chart
@@ -231,9 +252,10 @@ def compare_datasets():
         ssim_values = [metrics[name]["ssim"] for name in dataset_names]
         psnr_values = [metrics[name]["psnr"] for name in dataset_names]
         rmse_values = [metrics[name]["rmse"] for name in dataset_names]
+        lpips_values = [metrics[name]["lpips"] for name in dataset_names]
 
-        # Create figure with three subplots
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
+        # Create figure with four subplots
+        fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(24, 5))
 
         # SSIM comparison
         ax1.bar(dataset_names, ssim_values)
@@ -247,6 +269,10 @@ def compare_datasets():
         # RMSE comparison
         ax3.bar(dataset_names, rmse_values)
         ax3.set_title("RMSE Comparison")
+
+        # LPIPS comparison
+        ax4.bar(dataset_names, lpips_values)
+        ax4.set_title("LPIPS Comparison (lower is better)")
 
         plt.tight_layout()
         plt.savefig("prediction_comparison/metrics_comparison.png")

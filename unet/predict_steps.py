@@ -94,22 +94,36 @@ if __name__ == '__main__':
     # imagePaths = np.random.choice(imagePaths, size=10)
     TimagePaths = []
     # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-269.png")
-    TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-27.png")
+    # TimagePaths = np.append(TimagePaths, "../dataset/ortophoto_pretraining/train_C/DOF5-20240602-D0717-27.png")
+    TimagePaths = np.append(TimagePaths, "../dataset/unity_dataset/mixed_visibility_dataset_320/test/train_A/DOF5-20240620-D0722_shadowClear_e20c040c821fef9e-x255-z255-Hard-28.png")
 
     # load our model from disk and flash it to the current device
     print("[INFO] load up model...")
     # iterate over the randomly selected test image paths
-    for epoch in range(5, 175, 5):
-        print("test " + str(epoch))
-        # model = glob.glob(f"output/output_usos_20250801222705/unet_shadow_20250801222705_e{epoch}.pth")
-        # model = glob.glob(f"output/output_pretraining_20250805183113/unet_shadow_20250805183113_e{epoch}.pth")
-        # model = glob.glob(f"output/output_20241122083203/unet_shadow_20241122083203_e{epoch}.pth")
-        # model = glob.glob(f"output/output_pretraining_20250805193927/unet_shadow_20250805193927_e{epoch}.pth")
-        # model = glob.glob(f"output/output_usos_20250906081803/unet_shadow_20250906081803_e{epoch}.pth")
-        # model = glob.glob(f"output/output_usos_20250703063322/unet_shadow_20250703063322_e{epoch}.pth")
-        model = glob.glob(f'output/output_usos_20250921214439/unet_shadow_20250921214439_e{epoch}.pth')  # usos s l1ssim
-        i = 0
-        unet = torch.load(model[i], map_location=config.DEVICE).to(config.DEVICE)
+    epoch = 5
+    while True:
+        try:
+            print("test " + str(epoch))
+            # model = f"output/output_usos_20250801222705/unet_shadow_20250801222705_e{epoch}.pth"
+            # model = f"output/output_pretraining_20250805183113/unet_shadow_20250805183113_e{epoch}.pth"
+            # model = f"output/output_20241122083203/unet_shadow_20241122083203_e{epoch}.pth"
+            # model = f"output/output_pretraining_20250805193927/unet_shadow_20250805193927_e{epoch}.pth"
+            # model = f"output/output_usos_20250906081803/unet_shadow_20250906081803_e{epoch}.pth"
+            # model = f"output/output_usos_20250703063322/unet_shadow_20250703063322_e{epoch}.pth"
+            # model = f'output/output_usos_20250921214439/unet_shadow_20250921214439_e{epoch}.pth'  # usos s l1ssim
+            # model = f"output/output_usos_20250922230121/unet_shadow_20250922230121_e{epoch}.pth"
+            # model = f"output/output_usos_20250922211950/unet_shadow_20250922211950_e{epoch}.pth"
+            model = f"output/output_usos_20250923063528/unet_shadow_20250923063528_e{epoch}.pth"
+            if os.path.exists(model):
+                unet = torch.load(model, map_location=config.DEVICE).to(config.DEVICE)
 
-        # make predictions and visualize the results
-        make_predictions(unet, TimagePaths[0], None, epoch)
+                # make predictions and visualize the results
+                make_predictions(unet, TimagePaths[0], None, epoch)
+                epoch = epoch + 5
+            else:
+                print("Finish")
+                exit(0)
+        except Exception as e:
+            print("Finish")
+            print(e)
+            exit(0)

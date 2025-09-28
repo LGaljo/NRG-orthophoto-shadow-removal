@@ -15,15 +15,15 @@ from model_unet import UNet
 MODEL_CHECKPOINTS = [
     {
         "name": "USOS",
-        "model_path": "output/unet_shadow_20250703063322_usos_e240.pth",
+        "model_path": "output/output_usos_20250921214439/unet_shadow_20250921214439.pth",
     },
     {
         "name": "SRD",
-        "model_path": "output/unet_shadow_20250629075948_srd_e500.pth",
+        "model_path": "output/output_srd_20250926072011/unet_shadow_20250926072011_e100.pth",
     },
     {
         "name": "ISTD",
-        "model_path": "output/unet_shadow_20250626223044_istd_e500.pth",
+        "model_path": "output/output_istd_20250925214442/unet_shadow_20250925214442_e100.pth",
     },
     # Add more checkpoints as needed
 ]

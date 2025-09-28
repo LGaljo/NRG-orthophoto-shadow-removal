@@ -118,8 +118,7 @@ def load_data():
 
     # partition the data into training and evaluation splits using part of
     # the data for training and the remaining for evaluation during training
-    # split = train_test_split(shadow_image, gt_image, test_size=config.EVAL_SPLIT, random_state=42)
-    split = train_test_split(shadow_image, gt_image, test_size=0.01, random_state=42)
+    split = train_test_split(shadow_image, gt_image, test_size=config.EVAL_SPLIT, random_state=42)
 
     # unpack the data split
     (train_si, eval_si) = split[:2]
