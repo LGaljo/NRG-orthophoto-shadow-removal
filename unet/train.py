@@ -3,6 +3,7 @@
 import math
 import os
 
+from PIL import Image
 from piqa import SSIM
 
 from dataset import ImageLoaderDataset
@@ -134,11 +135,26 @@ def load_data():
     # eval_si = eval_si[0::15]
     # eval_gti = eval_gti[0::15]
 
+    # Pre-load images if caching is enabled
+    cached_train_images, cached_train_gt_images = None, None
+    cached_eval_images, cached_eval_gt_images = None, None
+    if hasattr(config, 'CACHE_IN_MEMORY') and config.CACHE_IN_MEMORY:
+        print("[INFO] Caching dataset in memory...")
+        cached_train_images = [Image.open(p).convert('RGB') for p in tqdm(train_si, desc="Caching train images")]
+        cached_train_gt_images = [Image.open(p).convert('RGB') for p in tqdm(train_gti, desc="Caching train GT images")]
+        cached_eval_images = [Image.open(p).convert('RGB') for p in tqdm(eval_si, desc="Caching eval images")]
+        cached_eval_gt_images = [Image.open(p).convert('RGB') for p in tqdm(eval_gti, desc="Caching eval GT images")]
+        print("[INFO] Caching complete.")
+
     # create the train and evaluation datasets
     train_ds = ImageLoaderDataset(train_paths=train_si, gt_paths=train_gti, transforms=config.TRANSFORMS,
-                                  mean=config.MEAN, std=config.STD)
+                                  mean=config.MEAN, std=config.STD,
+                                  cached_train_images=cached_train_images,
+                                  cached_gt_images=cached_train_gt_images)
     eval_ds = ImageLoaderDataset(train_paths=eval_si, gt_paths=eval_gti, transforms=config.TRANSFORMS, mean=config.MEAN,
-                                 std=config.STD)
+                                 std=config.STD,
+                                 cached_train_images=cached_eval_images,
+                                 cached_gt_images=cached_eval_gt_images)
     print(f"[INFO] found {len(train_ds)} examples in the training set...")
     print(f"[INFO] found {len(eval_ds)} examples in the eval set...")
 
@@ -246,7 +262,7 @@ def train(model, train_loader, eval_loader, train_steps, eval_steps):
             # loop over the validation set
             for (x, y) in eval_loader:
                 # send the input to the device
-                (x, y) = (x.to(config.DEVICE), y.to(config.DEVICE))
+                (x, y) = (x.to(config.DEVICE, non_blocking=True), y.to(config.DEVICE, non_blocking=True))
 
                 # make the predictions and calculate the validation loss
                 prediction = model(x)

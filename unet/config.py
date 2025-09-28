@@ -26,6 +26,8 @@ NUM_EPOCHS = 0
 BATCH_SIZE = 0
 WEIGHT_DECAY = 0
 
+CACHE_IN_MEMORY = True
+
 if DATASET == "pretraining":
     # DATASET_PATH = os.path.join("..", "dataset", "ortophoto_pretraining_small")
     DATASET_PATH = os.path.join("..", "dataset", "ortophoto_pretraining")

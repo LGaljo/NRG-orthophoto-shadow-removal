@@ -12,13 +12,16 @@ from unet import config
 
 
 class ImageLoaderDataset(Dataset):
-    def __init__(self, train_paths, gt_paths, transforms, mean, std):
+    def __init__(self, train_paths, gt_paths, transforms, mean, std, cached_train_images=None, cached_gt_images=None):
         # store the image and mask filepaths, and augmentation transforms
         self.train_paths = train_paths
         self.gt_paths = gt_paths
         self.transforms = transforms
         self.mean = mean
         self.std = std
+        self.cached_train_images = cached_train_images
+        self.cached_gt_images = cached_gt_images
+        self.cache_in_memory = self.cached_train_images is not None and self.cached_gt_images is not None
 
     def __len__(self):
         # return the number of total samples contained in the dataset
@@ -27,8 +30,12 @@ class ImageLoaderDataset(Dataset):
     def __getitem__(self, idx):
         # load the image from disk, swap its channels to RGB,
         # and read the associated shadowless image from disk, swap its channels to RGB,
-        image_train = Image.open(self.train_paths[idx]).convert('RGB')
-        image_gt = Image.open(self.gt_paths[idx]).convert('RGB')
+        if self.cache_in_memory:
+            image_train = self.cached_train_images[idx]
+            image_gt = self.cached_gt_images[idx]
+        else:
+            image_train = Image.open(self.train_paths[idx]).convert('RGB')
+            image_gt = Image.open(self.gt_paths[idx]).convert('RGB')
 
         image_train_tensor, image_gt_tensor, image_train, image_gt = self.transform(image_train, image_gt)
 
