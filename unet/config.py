@@ -5,7 +5,7 @@ import os
 initial_time = datetime.now().strftime("%Y%m%d%H%M%S")
 # initial_time = "20240930182854"
 
-DATASET = "srd"
+DATASET = "pretraining"
 
 
 DATASET_PATH = None
@@ -30,7 +30,7 @@ if DATASET == "pretraining":
     # DATASET_PATH = os.path.join("..", "dataset", "ortophoto_pretraining_small")
     DATASET_PATH = os.path.join("..", "dataset", "ortophoto_pretraining")
     IMAGE_DATASET_PATH = os.path.join(DATASET_PATH, "train_A")
-    GT_DATASET_PATH = os.path.join(DATASET_PATH, "train_C")
+    GT_DATASET_PATH = os.path.join(DATASET_PATH, "train_A") # It is the same dataset
     TESTSET_T_PATH = os.path.join("..", "dataset", "ortophoto_pretraining", "train_A", "*.png")
     TESTSET_GT_PATH = os.path.join("..", "dataset", "SRD", "SRD_Test", "SRD", "shadow_free", "*.jpg")
 
@@ -60,39 +60,41 @@ if DATASET == "pretraining":
     BATCH_SIZE = 8
     WEIGHT_DECAY = 1e-5
 else:
-    # base path of the dataset
-    # USOS
-    # DATASET_PATH = os.path.join("..", "dataset", "unity_dataset", "usos", "train")
-    # DATASET_PATH = os.path.join("..", "dataset", "unity_dataset", "usos_small", "train_small")
-    # DATASET_PATH = os.path.join("..", "dataset", "unity_dataset", "usos_xs", "train")
-    # DATASET_PATH = os.path.join("..", "dataset", "unity_dataset", "usos_single", "train")
-    # TESTSET_PATH = os.path.join("..", "dataset", "unity_dataset", "mixed_visibility_dataset", "test")
+    if DATASET == "SRD":
+        DATASET_PATH = os.path.join("..", "dataset", "SRD", "SRD_Train", "Train")
+        IMAGE_DATASET_PATH = os.path.join(DATASET_PATH, "shadow")
+        GT_DATASET_PATH = os.path.join(DATASET_PATH, "shadow_free")
+        print('no mean/std')
+    elif DATASET == "ISTD":
+        DATASET_PATH = os.path.join("..", "dataset", "ISTD_Dataset", "train")
+        TESTSET_PATH = os.path.join("..", "dataset", "ISTD_Dataset", "test")
 
-    # SRD
-    DATASET_PATH = os.path.join("..", "dataset", "SRD", "SRD_Train", "Train")
-    IMAGE_DATASET_PATH = os.path.join(DATASET_PATH, "shadow")
-    GT_DATASET_PATH = os.path.join(DATASET_PATH, "shadow_free")
+        # define the path to the shadow images and shadowless images dataset
+        IMAGE_DATASET_PATH = os.path.join(DATASET_PATH, "train_A")
+        GT_DATASET_PATH = os.path.join(DATASET_PATH, "train_C")
 
-    # ISTD
-    # DATASET_PATH = os.path.join("..", "dataset", "ISTD_Dataset", "train")
-    # TESTSET_PATH = os.path.join("..", "dataset", "ISTD_Dataset", "test")
+        MEAN = [0.5491, 0.5430, 0.5157]  # ISTD dataset
+        STD = [0.1675, 0.1555, 0.1709]  # ISTD dataset
+    elif DATASET == "USOS":
+        DATASET_PATH = os.path.join("..", "dataset", "unity_dataset", "usos", "train")
+        DATASET_PATH = os.path.join("..", "dataset", "unity_dataset", "usos_small", "train_small")
+        DATASET_PATH = os.path.join("..", "dataset", "unity_dataset", "usos_xs", "train")
+        DATASET_PATH = os.path.join("..", "dataset", "unity_dataset", "usos_single", "train")
+        TESTSET_PATH = os.path.join("..", "dataset", "unity_dataset", "mixed_visibility_dataset", "test")
 
-    # MEAN=[0.485, 0.456, 0.406] # ImageNet dataset
-    # STD=[0.229, 0.224, 0.225] # ImageNet dataset
+        # define the path to the shadow images and shadowless images dataset
+        IMAGE_DATASET_PATH = os.path.join(DATASET_PATH, "train_A")
+        GT_DATASET_PATH = os.path.join(DATASET_PATH, "train_C")
 
-    # MEAN=[0.4880, 0.4950, 0.3880] # USOS t+gt dataset
-    # STD=[0.3099, 0.2588, 0.2466] # USOS t+gt dataset
-    # MEAN=[0.4179, 0.4282, 0.3439] # USOS t dataset
-    # STD=[0.3274, 0.2811, 0.2549] # USOS t dataset
-    # MEAN=[0.5580, 0.5620, 0.4327] # USOS gt dataset
-    # STD=[0.2741, 0.2139, 0.2294] # USOS gt dataset
-
-    MEAN=[0.5491, 0.5430, 0.5157] # ISTD dataset
-    STD=[0.1675, 0.1555, 0.1709] # ISTD dataset
-
-    # define the path to the shadow images and shadowless images dataset
-    # IMAGE_DATASET_PATH = os.path.join(DATASET_PATH, "train_A")
-    # GT_DATASET_PATH = os.path.join(DATASET_PATH, "train_C")
+        # MEAN=[0.4880, 0.4950, 0.3880] # USOS t+gt dataset
+        # STD=[0.3099, 0.2588, 0.2466] # USOS t+gt dataset
+        MEAN=[0.4179, 0.4282, 0.3439] # USOS t dataset
+        STD=[0.3274, 0.2811, 0.2549] # USOS t dataset
+        # MEAN=[0.5580, 0.5620, 0.4327] # USOS gt dataset
+        # STD=[0.2741, 0.2139, 0.2294] # USOS gt dataset
+    else:
+        MEAN=[0.485, 0.456, 0.406] # ImageNet dataset
+        STD=[0.229, 0.224, 0.225] # ImageNet dataset
 
     TRANSFORMS = [
             'RandomResizedCrop',
