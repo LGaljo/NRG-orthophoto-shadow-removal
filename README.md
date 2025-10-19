@@ -1,4 +1,4 @@
-# NRG Orthophoto Shadow Removal
+# Orthophoto Shadow Removal
 
 This repository contains the implementation of a **U-Net–based deep learning model** for **shadow removal from orthophoto imagery**.  
 The project addresses the lack of paired shadow–non-shadow training data by introducing a novel synthetic dataset and a complete pipeline for dataset generation, preprocessing, training, and evaluation.
